@@ -1,0 +1,29 @@
+<odoo>
+  <record id="mail_server_form" model="ir.ui.view">
+    <field name="name">ir.mail_server.mailchannels</field>
+    <field name="model">ir.mail_server</field>
+    <field name="inherit_id" ref="base.ir_mail_server_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='name']" position="after">
+        <field name="mc_enabled" groups="base.group_system"/>
+        <field name="mc_key_variable" invisible="not mc_enabled" groups="base.group_system"/>
+      </xpath>
+    </field>
+  </record>
+  <record id="operation_list" model="ir.ui.view">
+    <field name="name">mailchannels.operation.list</field>
+    <field name="model">mailchannels.operation</field>
+    <field name="arch" type="xml">
+      <list create="0" edit="0" delete="0">
+        <field name="create_date"/><field name="message_id"/><field name="state"/>
+        <field name="http_status"/><field name="request_id"/><field name="server_reference"/>
+      </list>
+    </field>
+  </record>
+  <record id="operation_action" model="ir.actions.act_window">
+    <field name="name">MailChannels Submission Receipts</field>
+    <field name="res_model">mailchannels.operation</field>
+    <field name="view_mode">list,form</field>
+  </record>
+  <menuitem id="operation_menu" name="MailChannels Submission Receipts" parent="base.menu_email" action="operation_action" groups="base.group_system"/>
+</odoo>
