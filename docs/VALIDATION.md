@@ -83,7 +83,7 @@ and9MIME checks; no lifecycle rerun was needed for this browser-only review.
 ## Native quotation and posted invoice
 
 `ODOO_BUSINESS_TESTS=1` installs the native Sales app in the disposable database.
-Five checks render its quotation email template and actual PDF report, process
+Seven checks render its quotation email template and actual PDF report, process
 that mail through the native queue, replay the accepted mail, and exercise the
 Send Invoice wizard for a posted customer invoice. Invoice acceptance also checks
 that native chatter retains the intended customer and generated PDF. The test verifies
@@ -104,3 +104,18 @@ All other header/body defects remain rejected; no new envelope recipient is infe
 The posted-invoice test reproduces the original failure and passes with this fix.
 The synthetic company/journal validates dispatch, not fiscal localization or full
 accounting, role, browser or live-provider behavior.
+
+Invoice failure checks cover HTTP400 rejection and transport timeout. They require
+committed native queue/recipient-notification states and durable rejected/unknown
+receipts, then exercise Odoo's actual Retry action and confirm no second request, including
+postcommit callbacks. Independent database reads verify the failed states persist.
+The invoice's is_move_sent flag stays true because Odoo also uses it for generated
+PDFs; it is not an acceptance or delivery indicator. Browser rendering of failure
+notifications, deliberate new-message resend and reconciliation workflows remain
+separate release gates.
+
+The combined failure fixture ends the snapshot opened around each synthetic
+invoice-creation commit and invalidates the cache before simulating the next
+request. Odoo20's accounting postcommit hook updates customer rank through another
+cursor; reusing the original shell snapshot caused a serialization conflict. This
+fixture correction does not disable the hook or change production transaction rules.

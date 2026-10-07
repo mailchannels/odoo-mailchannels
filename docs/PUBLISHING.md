@@ -48,7 +48,9 @@ has no release tag and has not been submitted to Odoo Apps.
   trim References, and actual bounce routing before claiming compatibility.
 - Perform an explicitly authorized real-account dry-run, then separately
   authorized delivery/reply/bounce testing. A connection test must not mark
-  business mail sent. HTTP acceptance is not inbox delivery.
+  business mail sent. HTTP acceptance is not inbox delivery. Odoo's invoice Sent
+  flag can mean only PDF generation; operators must check queue/notification and
+  receipt state, and reconcile an unknown outcome before creating a replacement.
 - Validate historic schema/cross-major migrations and production backup/restore
   procedures. Tests cover same-version module refresh and normal uninstall only.
 

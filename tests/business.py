@@ -63,6 +63,8 @@ invoice.action_post()
 assert invoice.state=='posted' and invoice.amount_total==250.0
 # This is a synthetic company, not a claim of fiscal/localization coverage.
 env.cr.commit()
+env.cr.rollback()  # End any snapshot opened by native postcommit hooks.
+env.invalidate_all()
 wizard=env['account.move.send.wizard'].with_context(active_model='account.move',active_ids=invoice.ids).create({'move_id':invoice.id,'sending_methods':['email'],'template_id':env.ref('account.email_template_edi_invoice').id})
 assert wizard.mail_partner_ids==customer
 with patch.object(type(Server),'_disable_send',return_value=False),patch('requests.post',return_value=Response()) as post,patch('smtplib.SMTP',side_effect=AssertionError('SMTP fallback')):
@@ -90,4 +92,45 @@ with patch.object(type(Server),'_disable_send',return_value=False),patch('reques
  notices=invoice.message_ids.filtered(lambda m:customer in m.partner_ids and m.message_type=='comment')
  assert notices and any(pdfs in m.attachment_ids for m in notices)
  print('PASS_BUSINESS: native invoice chatter retains intended customer and generated document')
-print('ODOO_BUSINESS_COMPLETE 5 checks; no live provider requests')
+# The native invoice "Sent" flag also means PDF generated, not email delivery.
+# Verify queue/notification/receipt failure state and the real Retry action.
+import requests
+for outcome, expected in [('reject', 'rejected'), ('timeout', 'unknown')]:
+ failed_invoice=invoice.copy({'invoice_date':fields.Date.today()})
+ failed_invoice.action_post()
+ env.cr.commit()
+ env.cr.rollback()  # New request boundary after account customer-rank postcommit write.
+ env.invalidate_all()  # Fresh request-like cache after postcommit notification hooks.
+ failure_wizard=env['account.move.send.wizard'].with_context(active_model='account.move',active_ids=failed_invoice.ids).create({'move_id':failed_invoice.id,'sending_methods':['email'],'template_id':env.ref('account.email_template_edi_invoice').id})
+ response=Response();response.status_code=400
+ failure=requests.Timeout('private fixture diagnostic') if outcome=='timeout' else None
+ with patch.object(type(Server),'_disable_send',return_value=False),patch('requests.post',return_value=response,side_effect=failure) as post,patch('smtplib.SMTP',side_effect=AssertionError('SMTP fallback')):
+  failure_wizard.action_send_and_print()
+  mails=env['mail.mail'].search([('model','=','account.move'),('res_id','=',failed_invoice.id)])
+  outgoing=mails.filtered(lambda m:m.state=='outgoing')
+  if outgoing:outgoing.send()
+  assert len(mails)==1 and mails.state=='exception'
+  assert post.call_count==1
+  assert 'private fixture diagnostic' not in (mails.failure_reason or '')
+  notices=mails.mail_message_id.notification_ids.filtered(lambda n:n.res_partner_id==customer)
+  assert notices and all(n.notification_status=='exception' for n in notices)
+  with env.registry.cursor() as cr:
+   receipts=env(cr=cr)['mailchannels.operation'].search([('message_id','=',mails.message_id)])
+   assert len(receipts)==1 and receipts.state==expected
+  assert failed_invoice.is_move_sent, 'Native flag records PDF generation, not email delivery'
+  mails.action_retry()
+  assert mails.state=='outgoing'
+  mails.send()
+  assert mails.state=='exception' and post.call_count==1
+  failed_mail_id=mails.id
+  env.cr.commit()
+  env.cr.rollback()
+  env.invalidate_all()
+  with env.registry.cursor() as cr:
+   persisted=env(cr=cr)['mail.mail'].browse(failed_mail_id)
+   assert persisted.exists() and persisted.state=='exception'
+   notifications=persisted.mail_message_id.notification_ids.filtered(lambda n:n.res_partner_id.id==customer.id)
+   assert notifications and all(n.notification_status=='exception' for n in notifications)
+  assert post.call_count==1, 'Postcommit must not resubmit failed invoice mail'
+  print('PASS_BUSINESS: invoice '+outcome+' persists failed notification and '+expected+' receipt; native Retry/postcommit make no new request')
+print('ODOO_BUSINESS_COMPLETE 7 checks; no live provider requests')

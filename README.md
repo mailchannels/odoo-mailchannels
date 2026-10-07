@@ -123,3 +123,11 @@ compares the rendered PDFs with the API attachments, checks native invoice chatt
 and verifies accepted quotation replay
 without a second request. It does not establish complete sales/invoice/browser
 or live-delivery acceptance. CI enables this alongside the lifecycle suite.
+
+Do not use the invoice's native **Sent** label as proof of API acceptance or
+email delivery: Odoo sets it when the PDF is generated, including on email
+failure. Check the email queue and recipient notification together with the
+MailChannels submission receipt. Rejected/unknown receipts block the same
+message's Retry action from making another API request. Do not create a new
+message or delete receipts to bypass that protection; reconcile the original
+outcome first. The current receipt screen is not a complete reconciliation UI.
