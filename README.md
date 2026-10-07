@@ -116,9 +116,10 @@ RPC denials have HTTP200 with an AccessError payload; HTTP status alone is not
 a success check. Full role/export UI, business flows, accessibility and live-provider
 acceptance remain open.
 
-For native quotation-template and real PDF transport checks, add
+For native quotation-template, posted-invoice wizard and real PDF transport checks, add
 `ODOO_BUSINESS_TESTS=1` to the test command. This installs Sales and starts an
 internal-only asset server with shared disposable attachment storage. The check
-compares the rendered PDF with the API attachment and verifies accepted replay
+compares the rendered PDFs with the API attachments, checks native invoice chatter,
+and verifies accepted quotation replay
 without a second request. It does not establish complete sales/invoice/browser
 or live-delivery acceptance. CI enables this alongside the lifecycle suite.

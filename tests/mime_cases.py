@@ -19,6 +19,31 @@ def convert_fixture(message):
 
 
 class MimeCases(unittest.TestCase):
+    def address_message(self, to):
+        msg = EmailMessage()
+        msg['From'] = 'sender@example.test'
+        msg['To'] = to
+        msg['Message-ID'] = '<address-list@example.test>'
+        msg.set_content('Hello')
+        return msg
+
+    def test_empty_recipient_slots_keep_envelope_restriction(self):
+        msg = self.address_message(',recipient@example.test,,other@example.test,')
+        self.assertTrue(msg['To'].defects)
+        payload = convert_fixture(msg)
+        self.assertEqual(payload['personalizations'], [{'to': [{'email': 'recipient@example.test'}]}])
+
+    def test_empty_slots_do_not_permit_invalid_recipient(self):
+        msg = self.address_message(',recipient@example.test,broken-address')
+        with self.assertRaises(InvalidMessage):
+            convert_fixture(msg)
+
+    def test_empty_sender_slot_still_rejected(self):
+        msg = self.address_message('recipient@example.test')
+        msg.replace_header('From', ',sender@example.test')
+        with self.assertRaises(InvalidMessage):
+            convert_fixture(msg)
+
     def test_valid_folded_base64(self):
         msg = parsed(b'Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n', b'SGVs\r\n bG8=')
         self.assertEqual(convert_fixture(msg)['content'], [{'type': 'text/plain', 'value': 'Hello'}])

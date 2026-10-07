@@ -45,4 +45,49 @@ with patch.object(type(Server),'_disable_send',return_value=False),patch('reques
  mail.send(raise_exception=True)
  assert post.call_count==1
  print('PASS_BUSINESS: accepted quotation replay makes no second provider request')
-print('ODOO_BUSINESS_COMPLETE 3 checks; no live provider requests')
+# Posted invoice through the native send wizard, including report and chatter.
+Account=env['account.account']
+def account(code,name,kind):
+ values={'code':code,'name':name,'account_type':kind}
+ if 'company_ids' in Account._fields:values['company_ids']=[(6,0,[env.company.id])]
+ else:values['company_id']=env.company.id
+ if kind=='asset_receivable':values['reconcile']=True
+ return Account.create(values)
+receivable=account('MC1100','Fixture receivable','asset_receivable')
+income=account('MC4000','Fixture revenue','income')
+customer.property_account_receivable_id=receivable
+journal=env['account.journal'].create({'name':'Fixture invoices','code':'MCINV','type':'sale','company_id':env.company.id,'default_account_id':income.id})
+from odoo import fields
+invoice=env['account.move'].create({'move_type':'out_invoice','partner_id':customer.id,'journal_id':journal.id,'invoice_date':fields.Date.today(),'invoice_line_ids':[(0,0,{'name':'Fixture consulting invoice','quantity':2,'price_unit':125.0,'account_id':income.id})]})
+invoice.action_post()
+assert invoice.state=='posted' and invoice.amount_total==250.0
+# This is a synthetic company, not a claim of fiscal/localization coverage.
+env.cr.commit()
+wizard=env['account.move.send.wizard'].with_context(active_model='account.move',active_ids=invoice.ids).create({'move_id':invoice.id,'sending_methods':['email'],'template_id':env.ref('account.email_template_edi_invoice').id})
+assert wizard.mail_partner_ids==customer
+with patch.object(type(Server),'_disable_send',return_value=False),patch('requests.post',return_value=Response()) as post,patch('smtplib.SMTP',side_effect=AssertionError('SMTP fallback')):
+ wizard.action_send_and_print()
+ assert invoice.is_move_sent
+ # Some native paths enqueue for the cron rather than immediately dispatching.
+ queued=env['mail.mail'].search([('model','=','account.move'),('res_id','=',invoice.id),('state','=','outgoing')])
+ if queued:queued.send(raise_exception=True)
+ assert post.call_count==1, 'Invoice must generate exactly one provider request'
+ payload=post.call_args.kwargs['json']
+ recipients=[x['email'] for p in payload['personalizations'] for k in ('to','cc','bcc') for x in p.get(k,[])]
+ assert recipients==['quotation-customer@example.test']
+ assert invoice.name in payload['subject']
+ pdfs=invoice.message_ids.attachment_ids.filtered(lambda a:a.mimetype=='application/pdf')
+ assert len(pdfs)==1
+ raw=pdfs.raw
+ if isinstance(raw,bytes):pdf=raw
+ else:
+  with raw.open() as stream:pdf=stream.read()
+ assert pdf.startswith(b'%PDF-') and len(pdf)>1000
+ attachments=payload['attachments']
+ assert len(attachments)==1 and base64.b64decode(attachments[0]['content'])==pdf
+ assert attachments[0]['filename']==pdfs.name
+ print('PASS_BUSINESS: posted invoice send wizard preserves customer and native PDF through API')
+ notices=invoice.message_ids.filtered(lambda m:customer in m.partner_ids and m.message_type=='comment')
+ assert notices and any(pdfs in m.attachment_ids for m in notices)
+ print('PASS_BUSINESS: native invoice chatter retains intended customer and generated document')
+print('ODOO_BUSINESS_COMPLETE 5 checks; no live provider requests')

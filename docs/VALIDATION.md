@@ -25,10 +25,12 @@ and token ownership, and non-superuser ORM/export/method access controls.
 Malformed Base64 and duplicate Subject are tested through native `send_email`:
 both fail without an HTTP request or submission receipt.
 
-Nine MIME tests cover valid folded Base64; corrupted Base64 bodies/attachments;
+Twelve MIME tests cover valid folded Base64; corrupted Base64 bodies/attachments;
 unknown transfer encoding; duplicate identity and MIME headers; missing multipart
 boundaries; unsupported signed MIME; and Unicode/ISO-8859-1 text, HTML and inline
-binary Content-ID preservation. These are not an exhaustive MIME validator.
+binary Content-ID preservation. Three additional cases verify obsolete empty
+recipient-list slots, envelope filtering and retained rejection of invalid recipient
+and sender-header defects. These are not an exhaustive MIME validator.
 
 Seven lifecycle phases cover fixture setup, exact receipt/configuration
 preservation through a same-version module upgrade, real uninstall refusal when
@@ -78,11 +80,13 @@ read the configured API server before the restricted-user checks. Both denied
 pages were captured and visually inspected. The fresh fixture passed29native
 and9MIME checks; no lifecycle rerun was needed for this browser-only review.
 
-## Native sales quotation
+## Native quotation and posted invoice
 
 `ODOO_BUSINESS_TESTS=1` installs the native Sales app in the disposable database.
-Three checks render its quotation email template and actual PDF report, process
-that mail through the native queue, and replay the accepted mail. The test verifies
+Five checks render its quotation email template and actual PDF report, process
+that mail through the native queue, replay the accepted mail, and exercise the
+Send Invoice wizard for a posted customer invoice. Invoice acceptance also checks
+that native chatter retains the intended customer and generated PDF. The test verifies
 only the intended customer is targeted and the API attachment matches the generated
 PDF byte for byte, including filename. SMTP is blocked and requests.post is mocked.
 An internal-only Odoo asset server and shared temporary filestore support the real
@@ -90,5 +94,13 @@ renderer; report/storage failures fail the harness. No container port is publish
 The filestore volume, server, database and network are removed by the runner.
 
 This validates the template/queue boundary, not the Send by Email browser composer,
-a PDF visual review, invoice accounting workflow, salesman permission matrix,
+a PDF visual review, full invoice accounting/localization coverage, salesman permission matrix,
 chatter notifications, marketing suppression, receipt reconciliation or live delivery.
+
+The native Odoo19 invoice wizard initially failed before API submission because
+its To header includes an empty comma-separated list slot. The mapper now accepts
+only Python's ObsoleteHeaderDefect for an empty address-list entry on To/Cc/Bcc.
+All other header/body defects remain rejected; no new envelope recipient is inferred.
+The posted-invoice test reproduces the original failure and passes with this fix.
+The synthetic company/journal validates dispatch, not fiscal localization or full
+accounting, role, browser or live-provider behavior.
