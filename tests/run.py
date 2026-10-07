@@ -50,9 +50,14 @@ with tempfile.TemporaryDirectory(prefix='visibility-odoo-') as folder:
   print('NATIVE_ODOO_TESTS_COMPLETE '+version,flush=True)
   if options.review_port:
    seed="""env.ref('base.user_admin').write({'login':'browser-admin@example.test','password':'Local-Odoo-Fixture-12345!'})
+Users=env['res.users'].with_context(no_reset_password=True)
+groups_field='group_ids' if 'group_ids' in Users._fields else 'groups_id'
+reader=Users.create({'name':'Browser internal fixture','login':'browser-reader@example.test','password':'Local-Odoo-Reader-12345!',groups_field:[(6,0,[env.ref('base.group_user').id,env.ref('base.group_allow_export').id])]})
+assert not reader.has_group('base.group_system')
 server=env['ir.mail_server'].create({'name':'Browser API fixture','mc_enabled':True,'from_filter':'example.test'})
 env.cr.commit()
 print('BROWSER_SERVER_ID='+str(server.id))
+print('BROWSER_ACTIONS='+repr([(x.id,x.res_model) for x in env['ir.actions.act_window'].search([('res_model','in',['ir.mail_server','mailchannels.operation'])])]))
 """
    print(run(*base,'shell',*args,input=seed),flush=True)
    command=base.copy();command[2:2]=['--name',web,'-d']
@@ -66,6 +71,7 @@ print('BROWSER_SERVER_ID='+str(server.id))
    tunnel=open_tunnel(web,options.review_port)
    print('BROWSER_READY http://127.0.0.1:'+str(options.review_port)+'/web/login?debug=1',flush=True)
    print('Synthetic login: browser-admin@example.test / Local-Odoo-Fixture-12345!; Ctrl-C cleans up.',flush=True)
+   print('Internal user with export permission: browser-reader@example.test / Local-Odoo-Reader-12345!',flush=True)
    try:
     while True:time.sleep(1)
    except KeyboardInterrupt:pass

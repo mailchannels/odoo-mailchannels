@@ -97,7 +97,8 @@ Source publication is not an Odoo Apps release or production acceptance.
 
 Run `python3 tests/run.py --review-port 18190` (optionally with
 `ODOO_TEST_VERSION=19.0`). After the native checks pass, open the printed loopback
-URL and use the printed synthetic login. The database contains only fixture mail
+URL and use the printed synthetic admin or internal-user login. The internal user
+has export permission but no Settings administrator role. The database contains only fixture mail
 and receipts. The web server uses the same Docker internal network; a loopback
 `docker exec` relay exposes the UI without publishing container ports. Ctrl-C
 removes the web/database containers, network and temporary module build.
@@ -105,7 +106,10 @@ Do not combine browser mode with lifecycle tests, which uninstall the module.
 
 Do not enter real credentials or click Test Connection expecting a working live
 service: the fixture key is synthetic and the server has no internet route.
-Odoo20 browser review verified save/reload of an API server without SMTP host,
-readable desktop/narrow configuration and the receipt list. Odoo19 has native form
-regressions but still needs browser acceptance. Full browser ACL/export, business
-flows, accessibility and live-provider acceptance remain open.
+Odoo19/20 browser review verified save/reload of an API server without SMTP host
+and readable desktop/narrow configuration; the receipt list was inspected on20.
+On19, the internal-user session is denied both protected pages and direct RPC
+read/export/test actions, and protected fields are absent from field metadata.
+RPC denials have HTTP200 with an AccessError payload; HTTP status alone is not
+a success check. Full role/export UI, business flows, accessibility and live-provider
+acceptance remain open.

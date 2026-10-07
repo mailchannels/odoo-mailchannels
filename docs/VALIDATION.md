@@ -48,8 +48,16 @@ See [publishing requirements](PUBLISHING.md) for the remaining release gates.
 
 Two form regressions use Odoo's actual `Form` helper: an API server saves without
 an SMTP host, while an ordinary SMTP server still requires it. ORM create alone
-missed this view-level defect. Odoo20 browser save/reload and desktop/narrow
+missed this view-level defect. Odoo19/20 browser save/reload and desktop/narrow
 rendering were also checked; the receipt list renders acceptance/unknown/rejected
 states. This does not validate browser permissions, export, every business flow,
-Odoo19 browser behavior or a real provider. Use the README browser-review mode
+all version-specific browser behavior or a real provider. Use the README browser-review mode
 to reproduce these checks without external provider traffic.
+
+Odoo19 internal-user browser/RPC check: the user has base internal-user and export
+permissions, but not Settings administration. Direct configuration and receipt
+pages display Access Error. Session-authenticated RPC denies configuration read,
+export and connection-test invocation, plus receipt search/read and export.
+Protected configuration fields are omitted by fields_get. Each denied RPC has
+HTTP200 and an odoo.exceptions.AccessError payload, with no result. This is a
+specific deny-path check, not complete browser role/company/export acceptance.
