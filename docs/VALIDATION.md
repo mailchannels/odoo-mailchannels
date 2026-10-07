@@ -17,7 +17,7 @@ ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 python3 tests/run.py
 ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 python3 tests/run.py
 ```
 
-The suite includes 28 native checks per version: queue/session routing, recipient
+The suite includes 30 native checks on19 and29 on20: queue/session routing, recipient
 and attachment mapping, native no-send mode, accepted replay, rollback and worker
 failure protection, overlapping recipient rejection, concurrent submissions,
 sanitized failures, separate configuration dry-run, real password-reset template
@@ -61,3 +61,12 @@ export and connection-test invocation, plus receipt search/read and export.
 Protected configuration fields are omitted by fields_get. Each denied RPC has
 HTTP200 and an odoo.exceptions.AccessError payload, with no result. This is a
 specific deny-path check, not complete browser role/company/export acceptance.
+
+Size-detection regression: the old override raised TypeError when Odoo19’s
+inherited Detect Max Limit action passed autodetect_max_email_size. API-mode
+invocation now raises a clear UserError before HTTP/SMTP access on19/20. On19,
+a mock of the native SMTP method confirms both the keyword and returned action
+are preserved for ordinary SMTP servers. The19builder hides the SMTP-only button
+for API servers;20has no such base-view control. The numerical SMTP limit itself
+is not validated against a real server, and API payload-size acceptance remains
+part of provider-limit testing.

@@ -19,6 +19,8 @@ Provision the API key through the server's secret-management/environment mechani
 
 As an administrator, configure an outgoing mail server and enable **Use MailChannels Email API**. Configure its normal FROM filter/priority carefully. For API servers, the form hides SMTP authentication/connection controls and does not require an SMTP host. The SMTP host, port, encryption and password settings are not used: HTTPS always verifies TLS, uses a fixed provider URL and does not follow redirects. Normal mail servers remain on their existing transport.
 
+Odoo19’s **Detect Max Limit** action is SMTP-specific. It is hidden for API servers, and direct API-mode invocation raises a clear error without a network request. Ordinary SMTP servers retain native size detection. Configure attachment handling against the current Email API limits; SMTP SIZE negotiation cannot discover them.
+
 The connection test on an API server calls the provider's **dry-run** endpoint with the current test sender/recipient; it sends no email and does not mark queued business messages as sent. Configure authorized visible and envelope sender domains, including SPF/Domain Lockdown and DKIM as appropriate. Successful local fixtures do not establish that your account/domain is ready.
 
 ## Submission receipts and retries

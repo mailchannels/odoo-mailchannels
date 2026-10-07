@@ -291,6 +291,26 @@ else:
  raise AssertionError('Normal SMTP form lost its host requirement')
 check('normal SMTP form still requires SMTP host')
 
+# Odoo19's inherited Detect Max Limit action passes this keyword to the override.
+with patch('requests.post') as post, patch('smtplib.SMTP') as smtp:
+ try:
+  server.test_smtp_connection(autodetect_max_email_size=True)
+ except UserError as exc:
+  assert 'cannot automatically detect' in str(exc)
+ else:
+  raise AssertionError('API transport claimed SMTP size detection')
+ post.assert_not_called()
+ smtp.assert_not_called()
+check('API size autodetection refuses clearly before network access')
+if hasattr(Server, 'action_retrieve_max_email_size'):
+ from odoo.addons.base.models.ir_mail_server import IrMail_Server
+ plain=Server.create({'name':'SMTP size control','smtp_host':'smtp.example.test'})
+ expected={'type':'ir.actions.client','tag':'fixture-smtp-size-result'}
+ with patch.object(IrMail_Server,'test_smtp_connection',autospec=True,return_value=expected) as upstream:
+  assert plain.action_retrieve_max_email_size()==expected
+  assert upstream.call_args.kwargs=={'autodetect_max_email_size':True}
+ check('Odoo19 SMTP size detection preserves upstream argument and result')
+
 print('RESULT: %s checks; no live API requests or email sent.' % len(checks))
 env.cr.rollback()
 
