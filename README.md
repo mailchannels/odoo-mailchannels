@@ -90,7 +90,7 @@ Support owner: dev@mailchannels.com (confirmed by MailChannels). A company Odoo 
 
 Native password reset is now exercised on Odoo 19 and 20 with auth_signup installed: actual template/queue/default-server selection, one mocked API POST, no SMTP, correct recipient and valid owner-bound reset link; reset token absent from receipts. See [validation coverage](docs/VALIDATION.md). Browser reset and actual delivery are still unverified.
 
-Native ORM/export acceptance passes on both versions as part of the 26 native checks. An ordinary internal user with export permission cannot discover/read/export/write transport configuration or read/export/change/delete receipts, and cannot invoke configuration validation. A non-superuser settings admin can read/export receipts but cannot create, change or delete them. See [validation coverage](docs/VALIDATION.md). Browser/RPC surface and multi-company validation remain.
+Native ORM/export acceptance passes on both versions as part of the native checks. An ordinary internal user with export permission cannot discover/read/export/write transport configuration or read/export/change/delete receipts, and cannot invoke configuration validation. A non-superuser settings admin can read/export receipts but cannot create, change or delete them. See [validation coverage](docs/VALIDATION.md). The internal-user browser/RPC deny paths also pass on both versions; complete role/export UI and multi-company validation remain.
 
 Publisher setup and submission requirements: [Odoo Apps handoff](docs/PUBLISHING.md).
 Source publication is not an Odoo Apps release or production acceptance.
@@ -110,7 +110,7 @@ Do not enter real credentials or click Test Connection expecting a working live
 service: the fixture key is synthetic and the server has no internet route.
 Odoo19/20 browser review verified save/reload of an API server without SMTP host
 and readable desktop/narrow configuration; the receipt list was inspected on20.
-On19, the internal-user session is denied both protected pages and direct RPC
+On19/20, the internal-user session is denied both protected pages and direct RPC
 read/export/test actions, and protected fields are absent from field metadata.
 RPC denials have HTTP200 with an AccessError payload; HTTP status alone is not
 a success check. Full role/export UI, business flows, accessibility and live-provider

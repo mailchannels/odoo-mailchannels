@@ -41,7 +41,7 @@ installed state and receipts to remain intact afterward.
 Lifecycle tests deliberately remove synthetic receipts in a disposable database
 to reach the empty-installation case. This is not a production recovery procedure.
 Used installations need a reviewed archive/migration and old-queue retirement plan.
-Major-version migrations, arbitrary third-party uninstall hooks, browser/RPC and
+Major-version migrations, arbitrary third-party uninstall hooks, complete browser role/export UI and
 multi-company acceptance remain outside this coverage.
 
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
@@ -50,11 +50,11 @@ Two form regressions use Odoo's actual `Form` helper: an API server saves withou
 an SMTP host, while an ordinary SMTP server still requires it. ORM create alone
 missed this view-level defect. Odoo19/20 browser save/reload and desktop/narrow
 rendering were also checked; the receipt list renders acceptance/unknown/rejected
-states. This does not validate browser permissions, export, every business flow,
+states. This does not validate every browser role, export UI, every business flow,
 all version-specific browser behavior or a real provider. Use the README browser-review mode
 to reproduce these checks without external provider traffic.
 
-Odoo19 internal-user browser/RPC check: the user has base internal-user and export
+Odoo19/20 internal-user browser/RPC check: the user has base internal-user and export
 permissions, but not Settings administration. Direct configuration and receipt
 pages display Access Error. Session-authenticated RPC denies configuration read,
 export and connection-test invocation, plus receipt search/read and export.
@@ -70,3 +70,10 @@ are preserved for ordinary SMTP servers. The19builder hides the SMTP-only button
 for API servers;20has no such base-view control. The numerical SMTP limit itself
 is not validated against a real server, and API payload-size acceptance remains
 part of provider-limit testing.
+
+Odoo20 browser follow-up used the unchanged implementation at 8d2aaff9b66cc96572dc08c8c0f46b504e251616.
+The native user-menu Log out action switched sessions; GET /web/session/logout
+returns Method Not Allowed on this fixture. An administrator positive control
+read the configured API server before the restricted-user checks. Both denied
+pages were captured and visually inspected. The fresh fixture passed29native
+and9MIME checks; no lifecycle rerun was needed for this browser-only review.
