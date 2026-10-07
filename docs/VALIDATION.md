@@ -13,8 +13,8 @@ and mail queue through `odoo shell`, and removes the disposable resources.
 Run both versions with full lifecycle coverage:
 
 ```sh
-ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 python3 tests/run.py
-ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 python3 tests/run.py
+ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 tests/run.py
+ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 tests/run.py
 ```
 
 The suite includes 30 native checks on19 and29 on20: queue/session routing, recipient
@@ -77,3 +77,18 @@ returns Method Not Allowed on this fixture. An administrator positive control
 read the configured API server before the restricted-user checks. Both denied
 pages were captured and visually inspected. The fresh fixture passed29native
 and9MIME checks; no lifecycle rerun was needed for this browser-only review.
+
+## Native sales quotation
+
+`ODOO_BUSINESS_TESTS=1` installs the native Sales app in the disposable database.
+Three checks render its quotation email template and actual PDF report, process
+that mail through the native queue, and replay the accepted mail. The test verifies
+only the intended customer is targeted and the API attachment matches the generated
+PDF byte for byte, including filename. SMTP is blocked and requests.post is mocked.
+An internal-only Odoo asset server and shared temporary filestore support the real
+renderer; report/storage failures fail the harness. No container port is published.
+The filestore volume, server, database and network are removed by the runner.
+
+This validates the template/queue boundary, not the Send by Email browser composer,
+a PDF visual review, invoice accounting workflow, salesman permission matrix,
+chatter notifications, marketing suppression, receipt reconciliation or live delivery.
