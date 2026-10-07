@@ -17,7 +17,7 @@ The builder uses the correct version-specific access-control format: Odoo 20 `ir
 
 Provision the API key through the server's secret-management/environment mechanism, using `MAILCHANNELS_ODOO_API_KEY` or another dedicated `MAILCHANNELS_*API_KEY` name. Never put the key in source, a module manifest, screenshots or a browser form. The model stores only the environment-variable name. All workers must receive the same intended configuration. Separate servers can use different named variables.
 
-As an administrator, configure an outgoing mail server and enable **Use MailChannels Email API**. Configure its normal FROM filter/priority carefully. For API servers, the SMTP host, port, encryption and password settings are not used: HTTPS always verifies TLS, uses a fixed provider URL and does not follow redirects. Normal mail servers remain on their existing transport.
+As an administrator, configure an outgoing mail server and enable **Use MailChannels Email API**. Configure its normal FROM filter/priority carefully. For API servers, the form hides SMTP authentication/connection controls and does not require an SMTP host. The SMTP host, port, encryption and password settings are not used: HTTPS always verifies TLS, uses a fixed provider URL and does not follow redirects. Normal mail servers remain on their existing transport.
 
 The connection test on an API server calls the provider's **dry-run** endpoint with the current test sender/recipient; it sends no email and does not mark queued business messages as sent. Configure authorized visible and envelope sender domains, including SPF/Domain Lockdown and DKIM as appropriate. Successful local fixtures do not establish that your account/domain is ready.
 
@@ -92,3 +92,20 @@ Native ORM/export acceptance passes on both versions as part of the 26 native ch
 
 Publisher setup and submission requirements: [Odoo Apps handoff](docs/PUBLISHING.md).
 Source publication is not an Odoo Apps release or production acceptance.
+
+### Disposable browser review
+
+Run `python3 tests/run.py --review-port 18190` (optionally with
+`ODOO_TEST_VERSION=19.0`). After the native checks pass, open the printed loopback
+URL and use the printed synthetic login. The database contains only fixture mail
+and receipts. The web server uses the same Docker internal network; a loopback
+`docker exec` relay exposes the UI without publishing container ports. Ctrl-C
+removes the web/database containers, network and temporary module build.
+Do not combine browser mode with lifecycle tests, which uninstall the module.
+
+Do not enter real credentials or click Test Connection expecting a working live
+service: the fixture key is synthetic and the server has no internet route.
+Odoo20 browser review verified save/reload of an API server without SMTP host,
+readable desktop/narrow configuration and the receipt list. Odoo19 has native form
+regressions but still needs browser acceptance. Full browser ACL/export, business
+flows, accessibility and live-provider acceptance remain open.

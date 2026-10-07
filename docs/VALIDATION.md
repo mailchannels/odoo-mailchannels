@@ -17,7 +17,7 @@ ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 python3 tests/run.py
 ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 python3 tests/run.py
 ```
 
-The suite includes 26 native checks per version: queue/session routing, recipient
+The suite includes 28 native checks per version: queue/session routing, recipient
 and attachment mapping, native no-send mode, accepted replay, rollback and worker
 failure protection, overlapping recipient rejection, concurrent submissions,
 sanitized failures, separate configuration dry-run, real password-reset template
@@ -45,3 +45,11 @@ Major-version migrations, arbitrary third-party uninstall hooks, browser/RPC and
 multi-company acceptance remain outside this coverage.
 
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
+
+Two form regressions use Odoo's actual `Form` helper: an API server saves without
+an SMTP host, while an ordinary SMTP server still requires it. ORM create alone
+missed this view-level defect. Odoo20 browser save/reload and desktop/narrow
+rendering were also checked; the receipt list renders acceptance/unknown/rejected
+states. This does not validate browser permissions, export, every business flow,
+Odoo19 browser behavior or a real provider. Use the README browser-review mode
+to reproduce these checks without external provider traffic.

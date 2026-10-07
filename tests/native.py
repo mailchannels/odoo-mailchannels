@@ -273,6 +273,24 @@ for label, extra, body in (
   assert not env(cr=cr)['mailchannels.operation'].search_count([('message_id','=',ident)])
  check(label+' fails before provider call and receipt creation')
 
+# Exercise the inherited browser form, not just ORM create (which ignores view required).
+from odoo.tests import Form
+api_form=Form(Server)
+api_form.name='API form regression'
+api_form.mc_enabled=True
+api_record=api_form.save()
+assert not api_record.smtp_host
+check('API form saves without unused SMTP host')
+smtp_form=Form(Server)
+smtp_form.name='SMTP form control'
+try:
+ smtp_form.save()
+except AssertionError:
+ pass
+else:
+ raise AssertionError('Normal SMTP form lost its host requirement')
+check('normal SMTP form still requires SMTP host')
+
 print('RESULT: %s checks; no live API requests or email sent.' % len(checks))
 env.cr.rollback()
 
