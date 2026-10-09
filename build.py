@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 import shutil
+import xml.etree.ElementTree as ET
 ROOT=Path(__file__).resolve().parent
 
 def build(version, destination):
@@ -15,6 +16,15 @@ def build(version, destination):
     manifest=module/'__manifest__.py'
     manifest.write_text(manifest.read_text().replace('20.0.0.1.0',version+'.0.1.0'))
     if version=='19.0':
+        # This SMTP-only action exists in19, but was removed from the20 base view.
+        view=module/'views/mail_server.xml'
+        tree=ET.parse(view)
+        arch=tree.find("./record[@id='mail_server_form']/field[@name='arch']")
+        if arch is None:
+            raise ValueError('Expected mail server form architecture missing')
+        xpath=ET.SubElement(arch,'xpath',{'expr':"//button[@name='action_retrieve_max_email_size']",'position':'attributes'})
+        ET.SubElement(xpath,'attribute',{'name':'invisible'}).text='mc_enabled'
+        tree.write(view,encoding='unicode')
         manifest.write_text(manifest.read_text().replace('ir.access.csv','ir.model.access.csv'))
         acl=module/'security/ir.access.csv'
         acl.unlink()

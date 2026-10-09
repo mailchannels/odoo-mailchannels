@@ -66,7 +66,14 @@ class MailServer(models.Model):
                                   smtp_debug=smtp_debug, mail_server_id=mail_server_id,
                                   allow_archived=allow_archived)
 
-    def test_smtp_connection(self):
+    def test_smtp_connection(self, autodetect_max_email_size=False):
+        if autodetect_max_email_size:
+            self.ensure_one()
+            if self.mc_enabled:
+                raise UserError('MailChannels cannot automatically detect an SMTP size limit. '
+                                'Configure attachment handling using the current Email API limits.')
+            # Odoo19's Detect Max Limit action expects the native result and side effects.
+            return super().test_smtp_connection(autodetect_max_email_size=True)
         for server in self:
             if not server.mc_enabled:
                 super(MailServer, server).test_smtp_connection()

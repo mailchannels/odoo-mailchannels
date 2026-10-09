@@ -33,8 +33,10 @@ has no release tag and has not been submitted to Odoo Apps.
 - Complete receipt reconciliation, retention and retirement of used installations.
   Do not delete receipts to unlock a send or uninstall. Archive API servers and
   retain the module until a reviewed migration/retirement plan is implemented.
-- Finish invoice PDF, sales/chatter, notifications and marketing workflows;
-  preserve native permissions and suppression/unsubscribe behavior. Password
+- Finish complete invoice/sales/chatter, notifications and marketing workflows;
+  the native quotation template and posted-invoice Send Invoice wizard have mocked
+  PDF/recipient/chatter coverage, not full accounting/browser acceptance. Preserve
+  native permissions and suppression/unsubscribe behavior. Password
   reset has native mocked coverage but no received-mail/browser completion test.
 - Resolve known BCC-only and virtual-To-only limitations. Verify MIME/provider
   size limits and additional supported formats. The mapper is not SMTP-equivalent.
@@ -46,7 +48,9 @@ has no release tag and has not been submitted to Odoo Apps.
   trim References, and actual bounce routing before claiming compatibility.
 - Perform an explicitly authorized real-account dry-run, then separately
   authorized delivery/reply/bounce testing. A connection test must not mark
-  business mail sent. HTTP acceptance is not inbox delivery.
+  business mail sent. HTTP acceptance is not inbox delivery. Odoo's invoice Sent
+  flag can mean only PDF generation; operators must check queue/notification and
+  receipt state, and reconcile an unknown outcome before creating a replacement.
 - Validate historic schema/cross-major migrations and production backup/restore
   procedures. Tests cover same-version module refresh and normal uninstall only.
 

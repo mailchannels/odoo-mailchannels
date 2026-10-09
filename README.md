@@ -17,7 +17,9 @@ The builder uses the correct version-specific access-control format: Odoo 20 `ir
 
 Provision the API key through the server's secret-management/environment mechanism, using `MAILCHANNELS_ODOO_API_KEY` or another dedicated `MAILCHANNELS_*API_KEY` name. Never put the key in source, a module manifest, screenshots or a browser form. The model stores only the environment-variable name. All workers must receive the same intended configuration. Separate servers can use different named variables.
 
-As an administrator, configure an outgoing mail server and enable **Use MailChannels Email API**. Configure its normal FROM filter/priority carefully. For API servers, the SMTP host, port, encryption and password settings are not used: HTTPS always verifies TLS, uses a fixed provider URL and does not follow redirects. Normal mail servers remain on their existing transport.
+As an administrator, configure an outgoing mail server and enable **Use MailChannels Email API**. Configure its normal FROM filter/priority carefully. For API servers, the form hides SMTP authentication/connection controls and does not require an SMTP host. The SMTP host, port, encryption and password settings are not used: HTTPS always verifies TLS, uses a fixed provider URL and does not follow redirects. Normal mail servers remain on their existing transport.
+
+Odoo19’s **Detect Max Limit** action is SMTP-specific. It is hidden for API servers, and direct API-mode invocation raises a clear error without a network request. Ordinary SMTP servers retain native size detection. Configure attachment handling against the current Email API limits; SMTP SIZE negotiation cannot discover them.
 
 The connection test on an API server calls the provider's **dry-run** endpoint with the current test sender/recipient; it sends no email and does not mark queued business messages as sent. Configure authorized visible and envelope sender domains, including SPF/Domain Lockdown and DKIM as appropriate. Successful local fixtures do not establish that your account/domain is ready.
 
@@ -88,7 +90,46 @@ Support owner: dev@mailchannels.com (confirmed by MailChannels). A company Odoo 
 
 Native password reset is now exercised on Odoo 19 and 20 with auth_signup installed: actual template/queue/default-server selection, one mocked API POST, no SMTP, correct recipient and valid owner-bound reset link; reset token absent from receipts. See [validation coverage](docs/VALIDATION.md). Browser reset and actual delivery are still unverified.
 
-Native ORM/export acceptance passes on both versions as part of the 26 native checks. An ordinary internal user with export permission cannot discover/read/export/write transport configuration or read/export/change/delete receipts, and cannot invoke configuration validation. A non-superuser settings admin can read/export receipts but cannot create, change or delete them. See [validation coverage](docs/VALIDATION.md). Browser/RPC surface and multi-company validation remain.
+Native ORM/export acceptance passes on both versions as part of the native checks. An ordinary internal user with export permission cannot discover/read/export/write transport configuration or read/export/change/delete receipts, and cannot invoke configuration validation. A non-superuser settings admin can read/export receipts but cannot create, change or delete them. See [validation coverage](docs/VALIDATION.md). The internal-user browser/RPC deny paths also pass on both versions; the administrator receipt CSV export and native HTTP export deny path also pass on both versions. Complete role/company, visual/accessibility and broader export validation remain.
 
 Publisher setup and submission requirements: [Odoo Apps handoff](docs/PUBLISHING.md).
 Source publication is not an Odoo Apps release or production acceptance.
+
+### Disposable browser review
+
+Run `python3 tests/run.py --review-port 18190` (optionally with
+`ODOO_TEST_VERSION=19.0`). After the native checks pass, open the printed loopback
+URL and use the printed synthetic admin or internal-user login. The internal user
+has export permission but no Settings administrator role. The database contains only fixture mail
+and receipts. The web server uses the same Docker internal network; a loopback
+`docker exec` relay exposes the UI without publishing container ports. Ctrl-C
+removes the web/database containers, network and temporary module build.
+Do not combine browser mode with lifecycle tests, which uninstall the module.
+
+Do not enter real credentials or click Test Connection expecting a working live
+service: the fixture key is synthetic and the server has no internet route.
+Odoo19/20 browser review verified save/reload of an API server without SMTP host
+and readable desktop/narrow configuration; the receipt list was inspected on20.
+On19/20, the internal-user session is denied both protected pages and direct RPC
+read/export/test actions, and protected fields are absent from field metadata.
+RPC denials have HTTP200 with an AccessError payload; HTTP status alone is not
+a success check. Administrator receipt CSV exports on both versions retain all14synthetic
+receipts and the selected fields; the internal-user CSV HTTP route is also denied.
+See docs/VALIDATION.md for reproduction and limits. Complete role/company, visual/
+accessibility, broader export, business flows and live-provider acceptance remain open.
+
+For native quotation-template, posted-invoice wizard and real PDF transport checks, add
+`ODOO_BUSINESS_TESTS=1` to the test command. This installs Sales and starts an
+internal-only asset server with shared disposable attachment storage. The check
+compares the rendered PDFs with the API attachments, checks native invoice chatter,
+and verifies accepted quotation replay
+without a second request. It does not establish complete sales/invoice/browser
+or live-delivery acceptance. CI enables this alongside the lifecycle suite.
+
+Do not use the invoice's native **Sent** label as proof of API acceptance or
+email delivery: Odoo sets it when the PDF is generated, including on email
+failure. Check the email queue and recipient notification together with the
+MailChannels submission receipt. Rejected/unknown receipts block the same
+message's Retry action from making another API request. Do not create a new
+message or delete receipts to bypass that protection; reconcile the original
+outcome first. The current receipt screen is not a complete reconciliation UI.

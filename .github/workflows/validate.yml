@@ -14,8 +14,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - name: Install, transport, MIME, access and lifecycle validation
+      - name: Install, transport, MIME, quotation, access and lifecycle validation
         env:
           ODOO_TEST_VERSION: '${{ matrix.odoo }}'
           ODOO_LIFECYCLE_TESTS: '1'
+          ODOO_BUSINESS_TESTS: '1'
         run: python3 tests/run.py
