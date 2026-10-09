@@ -52,7 +52,7 @@ Two form regressions use Odoo's actual `Form` helper: an API server saves withou
 an SMTP host, while an ordinary SMTP server still requires it. ORM create alone
 missed this view-level defect. Odoo19/20 browser save/reload and desktop/narrow
 rendering were also checked; the receipt list renders acceptance/unknown/rejected
-states. This does not validate every browser role, export UI, every business flow,
+states. This earlier review does not validate every browser role, export UI, every business flow,
 all version-specific browser behavior or a real provider. Use the README browser-review mode
 to reproduce these checks without external provider traffic.
 
@@ -119,3 +119,44 @@ invoice-creation commit and invalidates the cache before simulating the next
 request. Odoo20's accounting postcommit hook updates customer rank through another
 cursor; reusing the original shell snapshot caused a serialization conflict. This
 fixture correction does not disable the hook or change production transaction rules.
+
+## Receipt list and CSV export
+
+On 2026-10-09 UTC, source commit `919a7213667897aef904809b25b1503928e94e6b`
+was installed in fresh pinned Odoo 19/20 review fixtures. The native checks passed
+(30 on 19, 29 on 20, plus 12 MIME cases each). A regular settings administrator
+session (uid 2, not the superuser uid 1) selected all 14 synthetic receipts, opened
+**Actions → Export**, retained the six list fields and added **Operation Key** and
+**Payload Hash**, selected CSV and invoked the native Export button.
+
+Both native `/web/export/csv` responses returned HTTP 200 with a CSV attachment.
+The captured CSV had 14 rows, accepted/unknown/rejected display labels, 14 unique
+64-character operation hashes and valid payload hashes. The available field list
+and selected export contained no API key, recipient-list or message-body field;
+the exported data contained none of the fixture credential, recipient, subject,
+body or attachment markers. Message and provider IDs remain operational metadata
+and can be sensitive in a real installation.
+
+Repeat with the README review runner on each supported version. In the receipt
+list, select the records, use Actions → Export and choose the fields above. Leave
+**I want to update data (import-compatible export)** off on 19, or **Updatable
+fields only** off on 20. Choose CSV. Export is for inspection; do not import or
+modify receipts as a reconciliation or retry mechanism.
+
+The fixture internal user (uid 8, export permission, no Settings administrator
+role) could not open the receipt list: Access Error, zero receipt rows. A direct
+session-authenticated POST to the CSV route for known receipt ID 1 also returned
+AccessError, no CSV attachment and no receipt data on both versions. The native
+route uses HTTP 500 for this permission exception; distinguish it from a valid
+HTTP 200 CSV attachment rather than assuming every response is a download.
+
+Evidence was collected through T3 browser DOM interaction and an observational
+XHR load listener on the actual native download response; no controller or
+request/response result was mocked. Screenshot capture failed, so this does not
+establish visual, physical keyboard, assistive-technology or OS file-save
+acceptance. On the private HTTP review origin, Odoo 20's optional tour module
+reported a missing Clipboard API; its dialogs were dismissed before export. This
+is not evidence of a production HTTPS failure or a module transport fix.
+XLSX, export templates, grouped/paginated large exports, complete role/company
+coverage, reconciliation/retention and production deployment remain unverified.
+No real provider call, delivered email, release or Apps publication occurred.
