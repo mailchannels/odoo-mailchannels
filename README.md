@@ -111,6 +111,14 @@ also pass on both versions; the administrator receipt CSV export and native HTTP
 also pass on both versions. Complete role/company, visual/accessibility and broader export
 validation remain.
 
+Native personal-server acceptance on 19/20 covers non-superuser owner and Settings
+administrator default selection, eligible forced API sessions/sends, and owner-created
+queue selection. Wrong sender, archived server (including allow_archived), and stale
+owner association fail before provider/SMTP access or receipt creation. The native
+guard validates sender and current owner association; it does not require the caller
+to be that owner. Personal-server setup UI and deployment acceptance remain open.
+See [validation coverage](docs/VALIDATION.md).
+
 Publisher setup and submission requirements: [Odoo Apps handoff](docs/PUBLISHING.md).
 Source publication is not an Odoo Apps release or production acceptance.
 

@@ -94,6 +94,6 @@ print('BROWSER_ACTIONS='+repr([(x.id,x.res_model) for x in env['ir.actions.act_w
  finally:
   if tunnel:tunnel.shutdown();tunnel.server_close()
   subprocess.run(['docker','rm','-f',web],capture_output=True)
-  subprocess.run(['docker','rm','-f',db],capture_output=True)
+  subprocess.run(['docker','rm','-f','-v',db],capture_output=True)
   subprocess.run(['docker','network','rm',network],capture_output=True)
   subprocess.run(['docker','volume','rm',data],capture_output=True)

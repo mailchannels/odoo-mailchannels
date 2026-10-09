@@ -44,9 +44,12 @@ has no release tag and has not been submitted to Odoo Apps.
 - Resolve known BCC-only and virtual-To-only limitations. Verify MIME/provider
   size limits and additional supported formats. The mapper is not SMTP-equivalent.
 - Validate the intended deployment/administrator boundary, remaining company/role
-  UI and RPC behavior, personal-server authorization and actual Odoo.sh secret
+  UI and RPC behavior, personal-server setup/management UI and actual Odoo.sh secret
   provisioning.
   Native two-company checks establish shared Settings administration, not company isolation.
+  Native personal-server checks cover selection and forced-send eligibility, including
+  queue processing by a different Settings administrator; they do not establish
+  caller-based privacy or full personal-server setup acceptance.
   Masked UI fields alone do not establish credential isolation.
 - Validate domain authorization, envelope sender and incoming alias/catchall
   configuration. The API generates Message-ID; this transport preserves the

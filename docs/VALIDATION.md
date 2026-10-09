@@ -8,7 +8,8 @@ been validated.
 would install. It uses digest-pinned Odoo 19 and 20 images (20260926 builds) and
 PostgreSQL 16 on a Docker internal network with no published ports. Exact digests
 are in the runner. It installs `mail` and `auth_signup`, exercises the native ORM
-and mail queue through `odoo shell`, and removes the disposable resources.
+and mail queue through `odoo shell`, and removes the disposable resources, including
+the PostgreSQL container's anonymous data volume.
 
 Run both versions with full lifecycle coverage:
 
@@ -17,7 +18,7 @@ ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 test
 ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 tests/run.py
 ```
 
-The suite includes 37 native checks on19 and36 on20: queue/session routing, recipient
+The suite includes 51 native checks on19 and50 on20: queue/session routing, recipient
 and attachment mapping, native no-send mode, accepted replay, rollback and worker
 failure protection, overlapping recipient rejection, concurrent submissions,
 sanitized failures, separate configuration dry-run, real password-reset template
@@ -72,10 +73,48 @@ Use separate Odoo deployments with separate databases when administrators must b
 isolated from another company's mail metadata. Named key variables select worker credentials;
 they do not establish company access boundaries.
 
-This checks shared Settings administration, not complete company isolation, personal
-server authorization, browser company switching, deployment or Odoo.sh provisioning.
-The native personal-server selection/forced-server checks remain in the send call
-chain, but personal-server behavior is not exercised by this ownerless fixture.
+This checks shared Settings administration, not complete company isolation, browser
+company switching, deployment or Odoo.sh provisioning.
+
+## Native personal outgoing servers
+
+Fourteen additional native checks exercise a real internal owner and a different
+Settings administrator, both without superuser mode. A higher-priority personal API
+server matches the owner's normalized email and SMTP username. Ordinary default
+lookup and default API sessions still select the shared ownerless server; personal
+servers are also excluded from unmatched-sender fallback. The native queue has a
+separate creator-based selection path: a mail.message created by the owner can use
+that personal server when a Settings administrator processes its mail.mail queue.
+The synthetic owner explicitly shares the mail.message with that administrator and
+the test asserts native read access; Settings membership alone does not grant access
+to every user's messages. The queue still targets only the intended buyer.
+A deliberate negative control verifies that queue creation rejects a forced personal
+server when its mail.message creator is a different user, before any HTTP/SMTP call.
+
+Both identities can force the active personal server for the matching sender. Tests
+assert the exact APISession/server/smtp_from, provider sender and envelope, intended
+recipient, one mocked request, unchanged Message-ID/References and an accepted
+receipt independently read from another cursor with the exact server_reference.
+The owner-created queue also asserts its selected batch/server/smtp_from, sent state,
+payload, request count and durable receipt. Native mail.mail access is Settings-only;
+the internal owner is not granted queue-management permission by this fixture.
+
+Wrong sender, archived server, archived server with allow_archived=True, and stale
+owner association each fail before HTTP, SMTP or receipt creation in both caller
+contexts. A stale SMTP username is applied to the fixture and the real computed
+owner association is invalidated and checked; no native policy method is mocked.
+Settings-admin queue attempts cover the same ineligible states. Only requests.post
+is mocked and SMTP/SMTP_SSL are blocked for these cases; the real no-send state,
+selection and forced-server guards remain active.
+
+The installed 19/20 mail guard compares the normalized sender with from_filter,
+requires an active personal server even when allow_archived=True, and verifies that
+its owner currently associates with that server. It does not compare the caller uid
+with the owner uid: the different Settings administrator and native queue may process
+that matching sender identity. These tests preserve that native policy; they do not
+establish caller-based privacy, company isolation, personal-server setup UI, provider
+credentials/domain acceptance, rate-limit boundaries or every third-party queue path.
+Production transport and access-control behavior are unchanged.
 
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
 
