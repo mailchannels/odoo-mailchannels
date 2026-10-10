@@ -73,7 +73,14 @@ and inline binary attachments are covered by native-runtime regression tests.
 This is not a complete MIME validator or proof of every message format; the
 remaining workflow and provider-limit checks still apply.
 
-Current incoming-mail/alias/catchall configuration remains necessary. Real received headers, chatter replies and bounces have not been verified. Provider Message-ID is not writable; the implementation relies on References and needs real-client reply tests before release.
+Synthetic native incoming qualification on the pinned Odoo 19/20 images covers
+invoice replies and DSN notifications after mocked API acceptance. Replies retain
+the original References; the positive DSN retains them in its outer headers.
+Enclosed References alone do not match an unknown rewritten provider Message-ID.
+Inbox-only followers and deliberate no-route controls bound this coverage.
+Current incoming-mail/alias/catchall configuration and separately authorized real
+received-mail tests remain necessary. Provider Message-ID/header preservation and
+delivery have not been verified. See [validation coverage](docs/VALIDATION.md).
 
 ## Validation
 
@@ -95,7 +102,7 @@ installation scenario; that test step is not an operator recovery procedure.
 
 The runner builds the same version-specific module used for installation, creates a disposable PostgreSQL/Odoo environment on an internal Docker network, installs the real module and exercises ORM/queue behavior through `odoo shell`. Requests are mocked; no external API/email traffic is permitted. Containers, network and temporary addon files are removed afterwards. Exact image digests are pinned in `tests/run.py`; see [validation coverage](docs/VALIDATION.md).
 
-Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, incoming reply and bounce tests, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, publisher account setup, real account dry-run, separately authorized delivery and Apps review.
+Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, real incoming reply and bounce tests, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, publisher account setup, real account dry-run, separately authorized delivery and Apps review.
 
 Support owner: dev@mailchannels.com (confirmed by MailChannels). A company Odoo Apps publisher account still needs to be established. This local beta is not yet published or production-ready.
 

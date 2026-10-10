@@ -296,6 +296,57 @@ request. Odoo20's accounting postcommit hook updates customer rank through anoth
 cursor; reusing the original shell snapshot caused a serialization conflict. This
 fixture correction does not disable the hook or change production transaction rules.
 
+## Native incoming replies and DSNs
+
+The same business suite adds synthetic native incoming qualification on the
+digest-pinned Odoo 19/20 images. A separate posted invoice uses the actual Send
+Invoice wizard and a copied native template with auto_delete disabled. The test
+observes its outgoing queue, original message/customer notification, one mocked
+HTTP202 request and committed acceptance receipt, then keeps the sent mail for
+replay. Original References, recipient, subject, sender identities, payload and
+operation hashes are checked; the API payload has no custom Message-ID.
+
+Ten cases process retained RFC bytes through native message_process with fresh
+gateway cursors. They cover retained References with an unmatched synthetic
+provider In-Reply-To, original-Odoo-ID-only In-Reply-To, duplicate reply, known
+quotation reference and unmatched-reference refusal. Positive replies check the
+exact invoice/quotation, parent, customer author, UTF-8 body and R1 attachment.
+A native Settings user configured for inbox notifications follows both records;
+the exact sent inbox notification is checked. This controlled follower set creates
+no new email queue, HTTP request, SMTP or SMTP_SSL call, including postcommit work.
+The no-route recipient is verified absent from aliases and alias domains; this
+does not qualify catchall delivery or every follower/notification policy.
+The gateway returns the exact record ID on Odoo19 and the exact model/recordset
+IDs on Odoo20. Unrouted DSNs return False on19 and an empty mail.thread recordset
+on20; duplicate replies return False on both. Assertions check these native values
+without converting the return type.
+
+Multipart/report DSNs cover an unknown rewritten enclosed ID with only enclosed
+References, a real known wrong Final-Recipient partner, preserved outer References,
+and repetition of the same positive DSN. Enclosed References alone do not match
+the original. Outer References match the original notification only when the
+recipient also matches; it becomes bounce/mail_bounce with the native plain-text
+reason. The native fallback to a sole notification partner when no recipient
+partner is found remains a limit; the wrong-recipient fixture deliberately uses a
+known unrelated partner. Stock email-wide bounce counters increment even without
+an original-message match, and a repeated DSN increments again. DSNs are not
+stored as ordinary chatter, so this is not a DSN idempotence guarantee.
+
+Every case checks committed original/sibling messages, notifications, queue,
+business/customer/financial identity and complete relevant receipt fields before
+and after. Receipts, including their timestamps, remain API acceptance evidence
+and are unchanged by replies or bounces. Fresh ORM reads expose a cleared
+failure_type as False on both versions; Odoo19's native sender writes an empty
+string before that read. No handler, parser, router or notification implementation
+is replaced. The copied template is removed after the cases so it does not block
+the inherited lifecycle fixture's normal server retirement.
+
+Synthetic provider IDs and original-reference preservation are fixture assumptions,
+not observed provider behavior. Real provider rewriting/outer DSN shape, clients
+trimming References, alias/catchall delivery configuration, account/domain dry-run
+and separately authorized received-mail/reply/bounce tests remain release gates.
+No provider delivery or header-preservation result is claimed.
+
 ## Receipt list and CSV export
 
 On 2026-10-09 UTC, source commit `919a7213667897aef904809b25b1503928e94e6b`
