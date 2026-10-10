@@ -116,6 +116,65 @@ establish caller-based privacy, company isolation, personal-server setup UI, pro
 credentials/domain acceptance, rate-limit boundaries or every third-party queue path.
 Production transport and access-control behavior are unchanged.
 
+### Odoo 20 personal setup browser check
+
+On 2026-10-10 UTC (2026-10-09 in America/Vancouver), source
+`792c964431c8eecce9737f7f1b2909190d254c1c` was installed through the existing
+`tests/run.py --review-port 18197` in the pinned Odoo 20.0-20260926 fixture.
+Initialization passed 50 native checks and 12 MIME cases. Business/lifecycle and
+Odoo 19 checks were not rerun. The Docker network was internal, cron was disabled,
+and no Test Connection, send, reset or provider-account action was invoked.
+
+The regular Settings administrator was uid 2, not superuser uid 1. The selected
+owner was the runner's ordinary internal/export user uid 11, distinct from the
+native suite's personal owner uid 10. Fixture preparation set only uid 11's
+synthetic email and `base_setup.default_external_email_server=True`; it did not
+seed a personal server association. That parameter is the native **Use Custom
+Email Servers** General Settings field and makes the Preferences selector visible.
+Configuring that setting through the browser was outside this bounded check.
+
+In the actual new outgoing-server form with `debug=1`, select **Owner** while
+MailChannels is off, then enter the exact owner email in **User email** (the native
+`smtp_user`) and leave that field before enabling MailChannels. Set the matching
+FROM filter and `MAILCHANNELS_ODOO_API_KEY` variable name, then save in API mode.
+The API form hides the native authentication section and Connection notebook,
+including Owner/User email; no intermediate SMTP-mode save was performed.
+The initial rapid input sequence entered Username before selecting Owner and
+saved without that username. Its failed persisted assertion is retained: owner
+was uid 11 but `smtp_user=False` and `outgoing_mail_server_id=False`. A single
+browser retry entered User email after the selected owner, left the field with
+Tab, then enabled MailChannels and saved. This input-order observation is not a
+diagnosed production defect or a reason to change native policy.
+
+Reload showed the saved API form. An independent native ORM read asserted record
+5 active, MailChannels enabled, variable name only, Owner uid 11, username and
+FROM filter equal to the owner's email, and empty SMTP host/password. The owner's
+computed `outgoing_mail_server_id` was exactly 5. Desktop 1280×720 and narrow
+390×844 captures show readable fields, with narrow scroll width 390. This is
+bounded rendering evidence, not an accessibility signoff.
+
+The owner's native user-menu **My Preferences** showed Default/Gmail/Outlook and
+selected **Default**. There is no MailChannels choice, key field or personal API
+setup control there. The installed compute maps native `smtp_authentication=login`
+to `outgoing_mail_server_type=default` despite the valid linked API server; the
+widget's connection button requires a non-default type, so it was absent. A direct
+full-page Preferences route without a record ID attempted user creation and showed
+Access Error; the user-menu entry successfully opened the current owner's record.
+No Preferences option was changed or saved. The same owner was denied record 5's
+transport page and the submission-receipt page with Access Error and no protected
+data rendered. The tested forms showed no API credential value or credential-entry
+control; only the administrator's environment-variable-name control was present.
+
+The browser tab, tunnel, web/database containers, internal network, named filestore
+and attributable PostgreSQL anonymous volume were removed. Final inventories had
+no added container/network/volume IDs and the loopback port was closed; pre-existing
+resources were preserved. Source-bound logs, seed/read scripts, screenshots, UI
+phase times and hashes are retained in the coordinated MAR-207 evidence package.
+This check establishes one Odoo 20 administrator workflow and one owner role only.
+Odoo 19 personal UI, full role/company and export matrices, accessibility, provider
+and deployment acceptance, retention/reconciliation/retirement, incoming replies
+and bounces, Odoo.sh, publisher setup and Apps/release gates remain open.
+
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
 
 Two form regressions use Odoo's actual `Form` helper: an API server saves without

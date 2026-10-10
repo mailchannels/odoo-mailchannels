@@ -116,8 +116,19 @@ administrator default selection, eligible forced API sessions/sends, and owner-c
 queue selection. Wrong sender, archived server (including allow_archived), and stale
 owner association fail before provider/SMTP access or receipt creation. The native
 guard validates sender and current owner association; it does not require the caller
-to be that owner. Personal-server setup UI and deployment acceptance remain open.
+to be that owner. A bounded Odoo 20 administrator debug-form setup and ordinary
+owner browser check also passes; Odoo 19 personal setup UI and deployment remain open.
 See [validation coverage](docs/VALIDATION.md).
+
+For that Odoo 20 setup, select the native **Owner** in developer mode while
+MailChannels is off, then set **User email** to the owner's exact email and leave
+the field before enabling MailChannels. Set the matching FROM filter and only the
+key-variable name, then save and reload with MailChannels enabled; no intermediate
+SMTP configuration needs saving. Owner and User email are hidden in API mode.
+The native **Use Custom Email Servers** setting separately enables the owner's
+Preferences mail selector. It still displays **Default** for this API server and
+offers only Default/Gmail/Outlook; it cannot configure MailChannels. Verify the
+computed owner association as well as the saved form before using a personal server.
 
 Publisher setup and submission requirements: [Odoo Apps handoff](docs/PUBLISHING.md).
 Source publication is not an Odoo Apps release or production acceptance.
