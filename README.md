@@ -107,8 +107,8 @@ search/read/export/create/change/delete receipts, and cannot invoke configuratio
 Non-superuser Settings admins restricted to either of two companies can read/export the same shared
 receipts and configuration and select the same ownerless server, but cannot create, change or delete
 receipts. See [validation coverage](docs/VALIDATION.md). The internal-user browser/RPC deny paths
-also pass on both versions; the administrator receipt CSV export and native HTTP export deny path
-also pass on both versions. Complete role/company, visual/accessibility and broader export
+also pass on both versions; administrator receipt CSV and XLSX exports and their native HTTP
+deny paths also pass on both versions. Complete role/company, visual/accessibility and broader export
 validation remain.
 
 Native personal-server acceptance on 19/20 covers non-superuser owner and Settings
@@ -157,8 +157,9 @@ and readable desktop/narrow configuration; the receipt list was inspected on20.
 On19/20, the internal-user session is denied both protected pages and direct RPC
 read/export/test actions, and protected fields are absent from field metadata.
 RPC denials have HTTP200 with an AccessError payload; HTTP status alone is not
-a success check. Administrator receipt CSV exports on both versions retain all14synthetic
-receipts and the selected fields; the internal-user CSV HTTP route is also denied.
+a success check. The earlier CSV fixtures retained all14synthetic receipts; fresh XLSX fixtures
+retain all17current receipts and the selected fields, checked against independent ORM snapshots.
+The internal-user native CSV and XLSX HTTP routes are denied.
 See docs/VALIDATION.md for reproduction and limits. Complete role/company, visual/
 accessibility, broader export, business flows and live-provider acceptance remain open.
 

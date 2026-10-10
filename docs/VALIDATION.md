@@ -333,6 +333,46 @@ establish visual, physical keyboard, assistive-technology or OS file-save
 acceptance. On the private HTTP review origin, Odoo 20's optional tour module
 reported a missing Clipboard API; its dialogs were dismissed before export. This
 is not evidence of a production HTTPS failure or a module transport fix.
-XLSX, export templates, grouped/paginated large exports, complete role/company
-coverage, reconciliation/retention and production deployment remain unverified.
+That CSV-only check did not validate XLSX, export templates or grouped/paginated large exports.
+Complete role/company coverage, reconciliation/retention and production deployment remain unverified.
 No real provider call, delivered email, release or Apps publication occurred.
+
+### Native XLSX export
+
+On 2026-10-10 in America/Vancouver, MAR-219 used unchanged runtime source
+`5e9b7af3dcda9fbb087c0d3f141e5ac4a7d8ff2b` in fresh pinned Odoo
+19.0-20260926 and 20.0-20260926 review fixtures. Initialization passed 51/50
+native checks respectively and 12 MIME cases each; business/lifecycle checks
+were not repeated. Regular Settings administrator uid 2 selected all 17 current
+synthetic receipts in each native list, opened Actions → Export, kept the six
+list fields and added Operation Key and Payload Hash. Import-compatible/updatable
+fields stayed off. The selected format was XLSX on 19 and Excel Workbook (.xlsx)
+on 20. Native list/dialog screenshots and DOM evidence were inspected and retained.
+
+Each actual `/web/export/xlsx` POST returned HTTP 200 with an XLSX attachment.
+An observational loopback relay retained the exact response bytes without changing
+the native request or response. Every selected header and cell was compared with
+an independently captured ORM snapshot in the exact requested record-ID order.
+Created on uses the browser's America/Vancouver context and the installed native
+Datetime export's second precision. Both workbooks contain all accepted/rejected/
+unknown fixture rows, 17 unique operation hashes and 17 valid payload hashes.
+Available/selected fields and workbook XML contain no credential, recipient-list
+or body field; specific fixture credential, recipient, subject, body and attachment
+markers are absent. This is a bounded fixture check, not a general DLP claim.
+
+The same browser authenticated ordinary internal/export user uid 11 without
+Settings administration. The native receipt page showed Access Error. A small
+synthetic HTML form then posted known receipt ID 1 to the actual XLSX HTTP route
+with that browser session and native CSRF token. Both versions returned HTTP 500
+with AccessError, no attachment/workbook and no fixture receipt identifiers/hashes
+or tested sensitive markers. This form tests the native route; it is not a native
+export dialog available to the denied user. Before/after receipt snapshots agree.
+
+The initial verifier retained a failed microsecond expectation; installed native
+Datetime conversion establishes the second precision used by the corrected check.
+Odoo 20's user-menu logout returned Method Not Allowed; its native login form
+successfully switched identities, confirmed by native session information.
+Owned tabs, observers, tunnels, containers, networks and volumes were removed.
+Evidence and hashes are retained in the coordinated MAR-219 validation package.
+No OS Downloads/file-save, complete role/company/accessibility, templates/grouped/
+large export, provider, production/Odoo.sh, release or Apps acceptance is claimed.
