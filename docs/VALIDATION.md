@@ -196,6 +196,32 @@ tab could not be selected for closing under the browser data-URL policy and was
 left unmarked for automatic end-of-turn cleanup. MAR-216 retains logs, native
 source snapshots, screenshots, failed attempts, hashes and cleanup observations.
 
+### Native global custom-email setting browser check
+
+On 2026-10-10 in America/Vancouver, fresh pinned Odoo 19.0-20260926 and
+20.0-20260926 fixtures used unchanged runtime source `5e9b7af3dcda9fbb087c0d3f141e5ac4a7d8ff2b`.
+Initialization passed 51/50 native checks respectively and 12 MIME cases each.
+Read-only native checks proved `base_setup.default_external_email_server` initially
+absent and the ordinary owner's `has_external_mail_server` false. Unlike the earlier
+personal-server fixtures, this check did not seed the global parameter.
+
+Actual Settings administrator uid 2 checked **Use Custom Email Servers** in native
+General Settings, saved and reloaded on each version. The checked browser control,
+raw `True` parameter written by uid 2 and ordinary uid 11's computed visibility agreed.
+The ordinary internal/export owner's user-menu Preferences showed no mail selector
+beforehand and Default/Gmail/Outlook with Default selected afterward. No selector
+choice or Preferences save was made; the owner remained without a linked mail server.
+
+The administrator unchecked the setting, saved and reloaded. Odoo 19 removed the
+parameter row; Odoo 20 retained raw `False`, whose typed getter and owner compute
+returned false. This restores the initial effective setting, not a byte-identical database.
+Two native settings saves per version and their uid 2 records/HTTP request paths are
+retained with desktop 1280×720 and narrow 390×844 screenshots, browser UIDs and
+installed settings/user/widget sources in MAR-217. Server records and receipt counts
+stayed unchanged. Owned fixture resources and tabs were removed. This global setting
+does not establish company isolation, MailChannels configuration through Preferences,
+full accessibility, live-provider or production acceptance; existing release gates remain.
+
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
 
 Two form regressions use Odoo's actual `Form` helper: an API server saves without

@@ -130,6 +130,12 @@ Preferences mail selector. It still displays **Default** for this API server and
 offers only Default/Gmail/Outlook; it cannot configure MailChannels. Verify the
 computed owner association as well as the saved form before using a personal server.
 
+To enable that native selector, a Settings administrator opens **General Settings**,
+checks **Use Custom Email Servers**, clicks **Save** and reloads. This is a global
+database setting; selecting a company does not partition it. Fresh pinned Odoo 19/20
+browser checks verified this workflow and restored the initial effective false value.
+Earlier personal-server browser fixtures seeded the setting instead of testing this step.
+
 Publisher setup and submission requirements: [Odoo Apps handoff](docs/PUBLISHING.md).
 Source publication is not an Odoo Apps release or production acceptance.
 
