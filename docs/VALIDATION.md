@@ -171,9 +171,30 @@ no added container/network/volume IDs and the loopback port was closed; pre-exis
 resources were preserved. Source-bound logs, seed/read scripts, screenshots, UI
 phase times and hashes are retained in the coordinated MAR-207 evidence package.
 This check establishes one Odoo 20 administrator workflow and one owner role only.
-Odoo 19 personal UI, full role/company and export matrices, accessibility, provider
+Full role/company and export matrices, accessibility, provider
 and deployment acceptance, retention/reconciliation/retirement, incoming replies
 and bounces, Odoo.sh, publisher setup and Apps/release gates remain open.
+
+On 2026-10-10 in America/Vancouver, the same bounded procedure passed on pinned
+Odoo 19.0-20260926 using source `5e9b7af3dcda9fbb087c0d3f141e5ac4a7d8ff2b`.
+Initialization passed 51 native checks and 12 MIME cases; business/lifecycle and
+Odoo 20 were not rerun. Browser sessions verified Settings administrator uid 2
+and ordinary internal/export owner uid 11 without Settings administration.
+Only the synthetic email and custom-email setting were seeded, with no owner link.
+Selecting Owner, entering User email and leaving it with Tab while MailChannels
+was off, then enabling API mode and saving once produced server 6. Reload and
+native readback verified the exact owner association, matching username/FROM
+filter, API variable name, MailChannels enabled, and empty SMTP host/password.
+The owner's user-menu Preferences showed Default/Gmail/Outlook with Default
+selected and no MailChannels setup or connection button; no option was changed
+or saved. The same owner was denied server 6 and the receipt action 143.
+Desktop 1280×720 and narrow 390×844 views were inspected with scroll width 390;
+the native owner email input truncates visually at narrow width. This is bounded
+rendering evidence, not full visual or accessibility signoff. The tested tab and
+owned fixture resources were removed; an initial refused-connection temporary
+tab could not be selected for closing under the browser data-URL policy and was
+left unmarked for automatic end-of-turn cleanup. MAR-216 retains logs, native
+source snapshots, screenshots, failed attempts, hashes and cleanup observations.
 
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
 
