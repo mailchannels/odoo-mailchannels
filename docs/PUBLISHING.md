@@ -12,7 +12,10 @@ has no release tag and has not been submitted to Odoo Apps.
 2. Establish isolated self-hosted/Odoo.sh acceptance environments for both 19.0
    and 20.0. Standard Odoo Online cannot install this Python module. Provision
    credentials through the host environment; confirm that every intended worker
-   receives the correct secret and that company/server boundaries are appropriate.
+   receives the correct secret. Settings administrators share receipt metadata and
+   ownerless outgoing-server configuration across companies; company selection and
+   named key variables do not isolate them. Use separate Odoo deployments with
+   separate databases when that administrator boundary is required.
 3. Complete the release gates below and rerun the pinned native suites. Create
    version-specific branches or repositories with the built `mail_mailchannels`
    addon at the root expected by the Apps scanner. The development root must not
@@ -40,7 +43,10 @@ has no release tag and has not been submitted to Odoo Apps.
   reset has native mocked coverage but no received-mail/browser completion test.
 - Resolve known BCC-only and virtual-To-only limitations. Verify MIME/provider
   size limits and additional supported formats. The mapper is not SMTP-equivalent.
-- Validate UI, RPC, multi-company isolation and actual Odoo.sh secret provisioning.
+- Validate the intended deployment/administrator boundary, remaining company/role
+  UI and RPC behavior, personal-server authorization and actual Odoo.sh secret
+  provisioning.
+  Native two-company checks establish shared Settings administration, not company isolation.
   Masked UI fields alone do not establish credential isolation.
 - Validate domain authorization, envelope sender and incoming alias/catchall
   configuration. The API generates Message-ID; this transport preserves the

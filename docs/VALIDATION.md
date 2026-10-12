@@ -17,7 +17,7 @@ ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 test
 ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 tests/run.py
 ```
 
-The suite includes 30 native checks on19 and29 on20: queue/session routing, recipient
+The suite includes 37 native checks on19 and36 on20: queue/session routing, recipient
 and attachment mapping, native no-send mode, accepted replay, rollback and worker
 failure protection, overlapping recipient rejection, concurrent submissions,
 sanitized failures, separate configuration dry-run, real password-reset template
@@ -43,8 +43,39 @@ installed state and receipts to remain intact afterward.
 Lifecycle tests deliberately remove synthetic receipts in a disposable database
 to reach the empty-installation case. This is not a production recovery procedure.
 Used installations need a reviewed archive/migration and old-queue retirement plan.
-Major-version migrations, arbitrary third-party uninstall hooks, complete browser role/export UI and
-multi-company acceptance remain outside this coverage.
+Major-version migrations, arbitrary third-party uninstall hooks and complete
+company/role/browser/export acceptance remain outside this coverage.
+
+## Shared administration across companies
+
+The native suite creates a second synthetic company and four real identities: a
+Settings administrator and an internal user with export permission, each allowed
+only company A or company B. It asserts user identity, groups, sole allowed company,
+actual `env.company` and non-superuser mode before exercising access.
+
+Both administrators read and export the same existing global receipts and outgoing
+server configuration. The existing API server is ownerless; native selection for
+`store@example.test` returns that same server in both company contexts. Both internal
+users are denied configuration discovery/read/export/write and validation, with a
+native AccessError and no provider call. Receipt search/read/export/create/write/delete
+are denied to both internal users; administrators cannot create/write/delete receipts.
+The existing public-user checks remain, and the shared receipt set, receipt contents
+and server configuration are unchanged after the denials. No extra mail submission
+is created for these company checks.
+
+These expectations come from the exact installed 19.0-20260926 and 20.0-20260926
+core/mail models and security definitions in the runner's pinned images. Neither
+`ir.mail_server` nor `mailchannels.operation` has a company field in this fixture;
+Settings access and the receipt read grant have no company restriction. Company
+selection therefore does not partition shared configuration or receipt metadata.
+Use separate Odoo deployments with separate databases when administrators must be
+isolated from another company's mail metadata. Named key variables select worker credentials;
+they do not establish company access boundaries.
+
+This checks shared Settings administration, not complete company isolation, personal
+server authorization, browser company switching, deployment or Odoo.sh provisioning.
+The native personal-server selection/forced-server checks remain in the send call
+chain, but personal-server behavior is not exercised by this ownerless fixture.
 
 See [publishing requirements](PUBLISHING.md) for the remaining release gates.
 

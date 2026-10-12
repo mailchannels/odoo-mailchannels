@@ -199,13 +199,10 @@ with patch.object(type(Server),'_disable_send',return_value=False),patch('reques
 from odoo.exceptions import AccessError, UserError
 Users=env['res.users'].with_context(no_reset_password=True)
 groups_field='group_ids' if 'group_ids' in Users._fields else 'groups_id'
-def access_user(login,group):
- return Users.create({'name':login,'login':login+'@example.test','email':login+'@example.test',groups_field:[(6,0,[env.ref(group).id])]})
-reader=access_user('receipt-reader','base.group_user')
-admin=access_user('receipt-admin','base.group_system')
-reader.write({groups_field:[(4,env.ref('base.group_allow_export').id)]})
-assert not reader.has_group('base.group_system') and admin.has_group('base.group_system')
-assert not env(user=admin).su
+def access_user(login,group,company):
+ return Users.create({'name':login,'login':login+'@example.test','email':login+'@example.test',
+  'company_id':company.id,'company_ids':[(6,0,[company.id])],
+  groups_field:[(6,0,[env.ref(group).id,env.ref('base.group_allow_export').id])]})
 
 def denied(fn):
  try:
@@ -213,46 +210,89 @@ def denied(fn):
  except AccessError:return
  raise AssertionError('Expected native access denial')
 
-restricted=server.with_user(reader)
-assert not {'mc_enabled','mc_key_variable'}.intersection(restricted.fields_get())
-for fields in (['mc_enabled'],['mc_key_variable']):
- denied(lambda:restricted.read(fields))
- denied(lambda:restricted.export_data(fields))
-denied(lambda:restricted.write({'mc_enabled':False}))
-denied(lambda:restricted.write({'mc_key_variable':'MAILCHANNELS_OTHER_API_KEY'}))
-assert server.mc_enabled and server.mc_key_variable=='MAILCHANNELS_ODOO_API_KEY'
-check('non-admin cannot discover/read/export/write transport configuration')
-
-with patch('requests.post') as post:
- denied(lambda:restricted.test_smtp_connection())
- post.assert_not_called()
-check('non-admin cannot invoke provider configuration validation')
-
 receipts=env['mailchannels.operation']
-row=receipts.search([],limit=1)
-assert row
-for role in (reader,public):
- scoped=row.with_user(role)
+rows=receipts.search([],order='id')
+assert rows
+receipt_fields=['operation_key','payload_hash','message_id','server_reference','state',
+ 'http_status','request_id','create_uid','create_date','write_uid','write_date']
+config_fields=['name','active','sequence','from_filter','owner_user_id','smtp_host','smtp_port',
+ 'smtp_user','smtp_pass','smtp_encryption','mc_enabled','mc_key_variable']
+receipt_snapshot=rows.read(receipt_fields)
+receipt_export=rows.export_data(['state','message_id','request_id'])['datas']
+config_snapshot=server.read(config_fields)
+config_export=server.export_data(['mc_enabled','mc_key_variable'])['datas']
+assert not server.owner_user_id
+assert 'company_id' not in Server._fields and 'company_id' not in receipts._fields
+company_b=env['res.company'].create({'name':'Access Company B'})
+for label,company in (('company A',env.company),('company B',company_b)):
+ reader=access_user('receipt-reader-'+str(company.id),'base.group_user',company)
+ admin=access_user('receipt-admin-'+str(company.id),'base.group_system',company)
+ contexts=[]
+ for role,is_admin in ((reader,False),(admin,True)):
+  role_env=env(user=role,context=dict(env.context,allowed_company_ids=[company.id]))
+  assert role_env.uid==role.id and role_env.user==role and not role_env.su
+  assert role.has_group('base.group_user') and role.has_group('base.group_allow_export')
+  assert role.has_group('base.group_system')==is_admin
+  assert role.company_id==company and role.company_ids.ids==[company.id]
+  assert role_env.context['allowed_company_ids']==[company.id]
+  assert role_env.companies.ids==[company.id] and role_env.company==company
+  contexts.append(role_env)
+ check(label+' identities have sole allowed company, intended roles and non-sudo context')
+ reader_env,admin_env=contexts
+ restricted=server.with_env(reader_env)
+ assert not {'mc_enabled','mc_key_variable'}.intersection(restricted.fields_get())
+ denied(lambda:restricted.search([]))
+ for fields in (['mc_enabled'],['mc_key_variable']):
+  denied(lambda:restricted.read(fields))
+  denied(lambda:restricted.export_data(fields))
+ denied(lambda:restricted.write({'mc_enabled':False}))
+ denied(lambda:restricted.write({'mc_key_variable':'MAILCHANNELS_OTHER_API_KEY'}))
+ with patch('requests.post') as post:
+  denied(lambda:restricted.test_smtp_connection())
+  post.assert_not_called()
+ scoped=rows.with_env(reader_env)
+ denied(lambda:scoped.search([]))
+ denied(lambda:scoped.search_read([],['request_id']))
  denied(lambda:scoped.read(['state','message_id','request_id']))
- if role==reader:
-  denied(lambda:scoped.export_data(['state','message_id','request_id']))
- else:
-  try:scoped.export_data(['state','message_id','request_id'])
-  except UserError:pass
-  else:raise AssertionError('Public export was allowed')
+ denied(lambda:scoped.export_data(['state','message_id','request_id']))
+ denied(lambda:scoped.create({'operation_key':'forged','payload_hash':'forged','state':'accepted'}))
  denied(lambda:scoped.write({'state':'rejected'}))
  denied(lambda:scoped.unlink())
-check('internal/public users cannot read/export/change/delete receipts')
+ check(label+
+       ' internal export user cannot access configuration, validate or access/mutate receipts')
+ admin_rows=receipts.with_env(admin_env).search([],order='id')
+ assert admin_rows.ids==rows.ids and admin_rows.read(receipt_fields)==receipt_snapshot
+ assert admin_rows.export_data(['state','message_id','request_id'])['datas']==receipt_export
+ admin_server=server.with_env(admin_env)
+ assert admin_server.read(config_fields)==config_snapshot
+ assert admin_server.export_data(['mc_enabled','mc_key_variable'])['datas']==config_export
+ selected,sender=Server.with_env(admin_env)._find_mail_server('store@example.test')
+ assert selected.id==server.id and sender=='store@example.test' and not selected.owner_user_id
+ denied(lambda:admin_rows.write({'state':'rejected'}))
+ denied(lambda:admin_rows.unlink())
+ denied(lambda:admin_rows.create({
+  'operation_key':'forged','payload_hash':'forged','state':'accepted'}))
+ assert 'fixture-api-key' not in str(admin_server.read(['mc_key_variable','mc_enabled']))
+ check(label+
+       ' settings admin reads/exports same shared receipts/config and selects ownerless server')
 
-admin_row=row.with_user(admin)
-assert admin_row.read(['state','request_id'])
-assert admin_row.export_data(['state','request_id'])['datas']
-denied(lambda:admin_row.write({'state':'rejected'}))
-denied(lambda:admin_row.unlink())
-denied(lambda:receipts.with_user(admin).create({'operation_key':'forged','payload_hash':'forged','state':'accepted'}))
+scoped=rows.with_user(public)
+denied(lambda:scoped.read(['state','message_id','request_id']))
+try:scoped.export_data(['state','message_id','request_id'])
+except UserError:pass
+else:raise AssertionError('Public export was allowed')
+denied(lambda:scoped.write({'state':'rejected'}))
+denied(lambda:scoped.unlink())
+check('non-admin cannot discover/read/export/write transport configuration')
+check('non-admin cannot invoke provider configuration validation')
+check('internal/public users cannot read/export/change/delete receipts')
 check('settings admin can inspect/export receipts but cannot forge/change/delete them')
-assert 'fixture-api-key' not in str(server.with_user(admin).read(['mc_key_variable','mc_enabled']))
 check('admin configuration exposes key variable name only, not credential')
+rows.invalidate_recordset();server.invalidate_recordset()
+assert receipts.search([],order='id').ids==rows.ids
+assert rows.read(receipt_fields)==receipt_snapshot and server.read(config_fields)==config_snapshot
+check('company access denials leave shared receipt set, contents and server configuration '
+      'unchanged')
 
 from email.parser import BytesParser
 from email import policy
