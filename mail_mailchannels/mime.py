@@ -2,6 +2,7 @@
 import base64
 import binascii
 from email.utils import getaddresses
+from email.errors import ObsoleteHeaderDefect
 
 
 class InvalidMessage(ValueError):
@@ -45,7 +46,17 @@ def convert(message, envelope_from, recipients):
         for name in ('Content-Type', 'Content-Transfer-Encoding', 'Content-Disposition', 'Content-ID'):
             if len(part.get_all(name, [])) > 1:
                 raise InvalidMessage('Duplicate MIME headers are not supported.')
-        if part.defects or any(getattr(value, 'defects', ()) for _, value in part.items()):
+        # Odoo19's invoice composer can emit empty comma-separated To slots.
+        # Ignore only that obsolete address-list syntax, never invalid addresses,
+        # body defects, or defects on sender/identity/MIME headers.
+        bad_headers = any(
+            not (name.lower() in ('to', 'cc', 'bcc')
+                 and isinstance(defect, ObsoleteHeaderDefect)
+                 and str(defect) in ('address-list entry with no content', 'empty element in address-list'))
+            for name, value in part.items()
+            for defect in getattr(value, 'defects', ())
+        )
+        if part.defects or bad_headers:
             raise InvalidMessage('Malformed MIME message.')
         if part.is_multipart():
             if part.get_content_type() not in ('multipart/mixed', 'multipart/alternative', 'multipart/related'):

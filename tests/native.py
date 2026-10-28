@@ -196,16 +196,13 @@ with patch.object(type(Server),'_disable_send',return_value=False),patch('reques
  check('native password-reset template and valid owner-bound link use API without SMTP')
 
 # ORM access/export checks use real users, not the superuser fixture identity.
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 Users=env['res.users'].with_context(no_reset_password=True)
 groups_field='group_ids' if 'group_ids' in Users._fields else 'groups_id'
-def access_user(login,group):
- return Users.create({'name':login,'login':login+'@example.test','email':login+'@example.test',groups_field:[(6,0,[env.ref(group).id])]})
-reader=access_user('receipt-reader','base.group_user')
-admin=access_user('receipt-admin','base.group_system')
-reader.write({groups_field:[(4,env.ref('base.group_allow_export').id)]})
-assert not reader.has_group('base.group_system') and admin.has_group('base.group_system')
-assert not env(user=admin).su
+def access_user(login,group,company):
+ return Users.create({'name':login,'login':login+'@example.test','email':login+'@example.test',
+  'company_id':company.id,'company_ids':[(6,0,[company.id])],
+  groups_field:[(6,0,[env.ref(group).id,env.ref('base.group_allow_export').id])]})
 
 def denied(fn):
  try:
@@ -213,46 +210,235 @@ def denied(fn):
  except AccessError:return
  raise AssertionError('Expected native access denial')
 
-restricted=server.with_user(reader)
-assert not {'mc_enabled','mc_key_variable'}.intersection(restricted.fields_get())
-for fields in (['mc_enabled'],['mc_key_variable']):
- denied(lambda:restricted.read(fields))
- denied(lambda:restricted.export_data(fields))
-denied(lambda:restricted.write({'mc_enabled':False}))
-denied(lambda:restricted.write({'mc_key_variable':'MAILCHANNELS_OTHER_API_KEY'}))
-assert server.mc_enabled and server.mc_key_variable=='MAILCHANNELS_ODOO_API_KEY'
-check('non-admin cannot discover/read/export/write transport configuration')
-
-with patch('requests.post') as post:
- denied(lambda:restricted.test_smtp_connection())
- post.assert_not_called()
-check('non-admin cannot invoke provider configuration validation')
-
 receipts=env['mailchannels.operation']
-row=receipts.search([],limit=1)
-assert row
-for role in (reader,public):
- scoped=row.with_user(role)
+rows=receipts.search([],order='id')
+assert rows
+receipt_fields=['operation_key','payload_hash','message_id','server_reference','state',
+ 'http_status','request_id','create_uid','create_date','write_uid','write_date']
+config_fields=['name','active','sequence','from_filter','owner_user_id','smtp_host','smtp_port',
+ 'smtp_user','smtp_pass','smtp_encryption','mc_enabled','mc_key_variable']
+receipt_snapshot=rows.read(receipt_fields)
+receipt_export=rows.export_data(['state','message_id','request_id'])['datas']
+config_snapshot=server.read(config_fields)
+config_export=server.export_data(['mc_enabled','mc_key_variable'])['datas']
+assert not server.owner_user_id
+assert 'company_id' not in Server._fields and 'company_id' not in receipts._fields
+company_b=env['res.company'].create({'name':'Access Company B'})
+for label,company in (('company A',env.company),('company B',company_b)):
+ reader=access_user('receipt-reader-'+str(company.id),'base.group_user',company)
+ admin=access_user('receipt-admin-'+str(company.id),'base.group_system',company)
+ contexts=[]
+ for role,is_admin in ((reader,False),(admin,True)):
+  role_env=env(user=role,context=dict(env.context,allowed_company_ids=[company.id]))
+  assert role_env.uid==role.id and role_env.user==role and not role_env.su
+  assert role.has_group('base.group_user') and role.has_group('base.group_allow_export')
+  assert role.has_group('base.group_system')==is_admin
+  assert role.company_id==company and role.company_ids.ids==[company.id]
+  assert role_env.context['allowed_company_ids']==[company.id]
+  assert role_env.companies.ids==[company.id] and role_env.company==company
+  contexts.append(role_env)
+ check(label+' identities have sole allowed company, intended roles and non-sudo context')
+ reader_env,admin_env=contexts
+ restricted=server.with_env(reader_env)
+ assert not {'mc_enabled','mc_key_variable'}.intersection(restricted.fields_get())
+ denied(lambda:restricted.search([]))
+ for fields in (['mc_enabled'],['mc_key_variable']):
+  denied(lambda:restricted.read(fields))
+  denied(lambda:restricted.export_data(fields))
+ denied(lambda:restricted.write({'mc_enabled':False}))
+ denied(lambda:restricted.write({'mc_key_variable':'MAILCHANNELS_OTHER_API_KEY'}))
+ with patch('requests.post') as post:
+  denied(lambda:restricted.test_smtp_connection())
+  post.assert_not_called()
+ scoped=rows.with_env(reader_env)
+ denied(lambda:scoped.search([]))
+ denied(lambda:scoped.search_read([],['request_id']))
  denied(lambda:scoped.read(['state','message_id','request_id']))
- if role==reader:
-  denied(lambda:scoped.export_data(['state','message_id','request_id']))
- else:
-  try:scoped.export_data(['state','message_id','request_id'])
-  except UserError:pass
-  else:raise AssertionError('Public export was allowed')
+ denied(lambda:scoped.export_data(['state','message_id','request_id']))
+ denied(lambda:scoped.create({'operation_key':'forged','payload_hash':'forged','state':'accepted'}))
  denied(lambda:scoped.write({'state':'rejected'}))
  denied(lambda:scoped.unlink())
-check('internal/public users cannot read/export/change/delete receipts')
+ check(label+
+       ' internal export user cannot access configuration, validate or access/mutate receipts')
+ admin_rows=receipts.with_env(admin_env).search([],order='id')
+ assert admin_rows.ids==rows.ids and admin_rows.read(receipt_fields)==receipt_snapshot
+ assert admin_rows.export_data(['state','message_id','request_id'])['datas']==receipt_export
+ admin_server=server.with_env(admin_env)
+ assert admin_server.read(config_fields)==config_snapshot
+ assert admin_server.export_data(['mc_enabled','mc_key_variable'])['datas']==config_export
+ selected,sender=Server.with_env(admin_env)._find_mail_server('store@example.test')
+ assert selected.id==server.id and sender=='store@example.test' and not selected.owner_user_id
+ denied(lambda:admin_rows.write({'state':'rejected'}))
+ denied(lambda:admin_rows.unlink())
+ denied(lambda:admin_rows.create({
+  'operation_key':'forged','payload_hash':'forged','state':'accepted'}))
+ assert 'fixture-api-key' not in str(admin_server.read(['mc_key_variable','mc_enabled']))
+ check(label+
+       ' settings admin reads/exports same shared receipts/config and selects ownerless server')
 
-admin_row=row.with_user(admin)
-assert admin_row.read(['state','request_id'])
-assert admin_row.export_data(['state','request_id'])['datas']
-denied(lambda:admin_row.write({'state':'rejected'}))
-denied(lambda:admin_row.unlink())
-denied(lambda:receipts.with_user(admin).create({'operation_key':'forged','payload_hash':'forged','state':'accepted'}))
+scoped=rows.with_user(public)
+denied(lambda:scoped.read(['state','message_id','request_id']))
+try:scoped.export_data(['state','message_id','request_id'])
+except UserError:pass
+else:raise AssertionError('Public export was allowed')
+denied(lambda:scoped.write({'state':'rejected'}))
+denied(lambda:scoped.unlink())
+check('non-admin cannot discover/read/export/write transport configuration')
+check('non-admin cannot invoke provider configuration validation')
+check('internal/public users cannot read/export/change/delete receipts')
 check('settings admin can inspect/export receipts but cannot forge/change/delete them')
-assert 'fixture-api-key' not in str(server.with_user(admin).read(['mc_key_variable','mc_enabled']))
 check('admin configuration exposes key variable name only, not credential')
+rows.invalidate_recordset();server.invalidate_recordset()
+assert receipts.search([],order='id').ids==rows.ids
+assert rows.read(receipt_fields)==receipt_snapshot and server.read(config_fields)==config_snapshot
+check('company access denials leave shared receipt set, contents and server configuration '
+      'unchanged')
+
+# Personal-server policy is sender/owner-association based, not caller-uid based.
+from odoo.addons.mail_mailchannels.models.mail_server import APISession
+from odoo.tools import email_normalize
+owner=access_user('personal-owner','base.group_user',env.company)
+owner_env=env(user=owner,context=dict(env.context,allowed_company_ids=[env.company.id]))
+personal=Server.create({'name':'Personal API fixture','mc_enabled':True,'sequence':1,
+ 'from_filter':owner.email_normalized,'smtp_user':owner.email,'owner_user_id':owner.id})
+owner.invalidate_recordset(['outgoing_mail_server_id','outgoing_mail_server_type'])
+assert owner.outgoing_mail_server_id==personal and personal.active
+# Durable receipts use another cursor and must see the real caller identities.
+env.cr.commit()
+for label,actor_env,is_admin in (('personal owner',owner_env,False),
+                               ('Settings admin',admin_env,True)):
+ assert not actor_env.su and actor_env.uid==actor_env.user.id
+ assert actor_env.user.has_group('base.group_user')
+ assert actor_env.user.has_group('base.group_system')==is_admin
+ assert (actor_env.uid==owner.id)==(not is_admin)
+ actor=Server.with_env(actor_env)
+ assert not actor._disable_send()
+ sender='Personal Owner <'+owner.email+'>'
+ with patch('requests.post') as post, \
+      patch('smtplib.SMTP',side_effect=AssertionError('Unexpected SMTP')) as smtp, \
+      patch('smtplib.SMTP_SSL',side_effect=AssertionError('Unexpected SMTP SSL')) as ssl:
+  selected,selected_sender=actor._find_mail_server(sender)
+  assert selected.id==server.id and selected_sender==sender and not selected.owner_user_id
+  default_session=actor._connect__(smtp_from=sender)
+  assert isinstance(default_session,APISession)
+  assert default_session.server.id==server.id and default_session.smtp_from==sender
+  assert not actor._filter_mail_servers_fallback(personal)
+  selected,_=actor._find_mail_server('unmatched@other.test',personal)
+  assert selected is None
+  post.assert_not_called();smtp.assert_not_called();ssl.assert_not_called()
+ check(label+' default lookup/session and fallback exclude higher-priority personal server')
+ with patch('requests.post',return_value=Response()) as post, \
+      patch('smtplib.SMTP',side_effect=AssertionError('Unexpected SMTP')) as smtp, \
+      patch('smtplib.SMTP_SSL',side_effect=AssertionError('Unexpected SMTP SSL')) as ssl:
+  session=actor._connect__(mail_server_id=personal.id,smtp_from=sender)
+  assert isinstance(session,APISession) and session.server.id==personal.id
+  assert session.smtp_from==sender and session.from_filter==owner.email_normalized
+  assert session.server.owner_user_id.id==owner.id
+  assert email_normalize(sender)==personal.from_filter
+  post.assert_not_called()
+  m=message();m.replace_header('From',sender)
+  original=m['Message-ID']
+  assert actor.send_email(m,mail_server_id=personal.id)==original
+  assert post.call_count==1
+  payload=post.call_args.kwargs['json']
+  assert payload['from']=={'email':owner.email,'name':'Personal Owner'}
+  assert payload['envelope_from']['email']==owner.email
+  assert payload['personalizations']==[{'to':[{'email':'buyer@example.test'}]}]
+  assert payload['subject']=='Invoice ✓' and original in payload['headers']['References']
+  with env.registry.cursor() as cr:
+   receipt=env(cr=cr)['mailchannels.operation'].search([('message_id','=',original)])
+   assert len(receipt)==1 and receipt.server_reference==personal.id
+   assert receipt.state=='accepted' and receipt.http_status==202
+   assert receipt.request_id=='fixture-request'
+  smtp.assert_not_called();ssl.assert_not_called()
+ check(label+' matched identity opens exact personal API session and sends with durable receipt')
+ for case,values,mail_from,allow_archived in (
+  ('wrong sender',{},'store@example.test',False),
+  ('archived',{'active':False},sender,False),
+  ('archived even when allowed',{'active':False},sender,True),
+  ('stale owner association',{'smtp_user':'stale@example.test'},sender,False),
+ ):
+  personal.write(values)
+  owner.invalidate_recordset(['outgoing_mail_server_id','outgoing_mail_server_type'])
+  if case=='stale owner association':assert not owner.outgoing_mail_server_id
+  m=message();m.replace_header('From',mail_from)
+  identities=[str(m['Message-ID'])]
+  with patch('requests.post') as post, \
+       patch('smtplib.SMTP',side_effect=AssertionError('Unexpected SMTP')) as smtp, \
+       patch('smtplib.SMTP_SSL',side_effect=AssertionError('Unexpected SMTP SSL')) as ssl:
+   for operation in (
+    lambda:actor._connect__(mail_server_id=personal.id,smtp_from=mail_from,
+                           allow_archived=allow_archived),
+    lambda:actor.send_email(m,mail_server_id=personal.id),
+   ):
+    try:operation()
+    except UserError:pass
+    else:raise AssertionError('Ineligible personal server reached API transport: '+case)
+   if is_admin:
+    owned_message=env['mail.message'].with_env(owner_env).create({
+     'subject':'Denied personal queue','body':'<p>Denied</p>','email_from':mail_from,
+     'message_type':'email','partner_ids':[(4,admin_env.user.partner_id.id)]})
+    assert owned_message.create_uid.id==owner.id
+    owned_message.with_env(actor_env).check_access('read')
+    queue=env['mail.mail'].with_env(actor_env).create({'mail_message_id':owned_message.id,
+     'email_to':'buyer@example.test','mail_server_id':personal.id,'auto_delete':False})
+    identities.append(queue.message_id)
+    try:queue.send(raise_exception=True)
+    except MailDeliveryException:pass
+    else:raise AssertionError('Ineligible personal server reached queued submission: '+case)
+   post.assert_not_called();smtp.assert_not_called();ssl.assert_not_called()
+  with env.registry.cursor() as cr:
+   assert not env(cr=cr)['mailchannels.operation'].search_count([('message_id','in',identities)])
+  personal.write({'active':True,'smtp_user':owner.email})
+  owner.invalidate_recordset(['outgoing_mail_server_id','outgoing_mail_server_type'])
+  assert owner.outgoing_mail_server_id==personal
+  check(label+' '+case+' fails before HTTP/SMTP and receipt creation')
+
+with patch('requests.post') as post, \
+     patch('smtplib.SMTP',side_effect=AssertionError('Unexpected SMTP')) as smtp, \
+     patch('smtplib.SMTP_SSL',side_effect=AssertionError('Unexpected SMTP SSL')) as ssl:
+ try:
+  with env.cr.savepoint():
+   env['mail.mail'].with_env(admin_env).create({'subject':'Wrong creator',
+    'body_html':'<p>Denied</p>','email_from':owner.email,'email_to':'buyer@example.test',
+    'mail_server_id':personal.id,'auto_delete':False})
+ except ValidationError:pass
+ else:raise AssertionError('Queue creator constraint allowed another personal owner')
+ post.assert_not_called();smtp.assert_not_called();ssl.assert_not_called()
+check('Settings queue creation rejects personal server when message creator differs from owner')
+
+# Native queues allow the mail.message creator's personal server; Settings processes it.
+owned_message=env['mail.message'].with_env(owner_env).create({
+ 'subject':'Owner queue','body':'<p>Personal queue</p>','email_from':owner.email,
+ 'message_type':'email','partner_ids':[(4,admin_env.user.partner_id.id)]})
+assert owned_message.create_uid.id==owner.id
+owned_message.with_env(admin_env).check_access('read')
+queue=env['mail.mail'].with_env(admin_env).create({'mail_message_id':owned_message.id,
+ 'email_to':'buyer@example.test','auto_delete':False})
+assert not queue.mail_server_id and queue.mail_message_id.create_uid.id==owner.id
+batches=list(queue._split_by_mail_configuration())
+print('PERSONAL_QUEUE_SELECTION: '+repr({'batches':batches,'personal_server_id':personal.id,
+ 'owner_email':owner.email,'queue_email_from':queue.email_from,
+ 'creator_id':queue.mail_message_id.create_uid.id,'processor_id':queue.env.uid,
+ 'processor_su':queue.env.su}))
+assert len(batches)==1 and batches[0][0]==personal.id
+assert batches[0][2]==owner.email and batches[0][3]==(queue.id,)
+with patch('requests.post',return_value=Response()) as post, \
+     patch('smtplib.SMTP',side_effect=AssertionError('Unexpected SMTP')) as smtp, \
+     patch('smtplib.SMTP_SSL',side_effect=AssertionError('Unexpected SMTP SSL')) as ssl:
+ queue.send(raise_exception=True)
+ assert queue.state=='sent' and post.call_count==1
+ payload=post.call_args.kwargs['json']
+ assert payload['from']['email']==owner.email and payload['envelope_from']['email']==owner.email
+ assert payload['personalizations']==[{'to':[{'email':'buyer@example.test'}]}]
+ assert payload['subject']=='Owner queue' and queue.message_id in payload['headers']['References']
+ with env.registry.cursor() as cr:
+  receipt=env(cr=cr)['mailchannels.operation'].search([('message_id','=',queue.message_id)])
+  assert len(receipt)==1 and receipt.server_reference==personal.id
+  assert receipt.state=='accepted' and receipt.http_status==202
+  assert receipt.request_id=='fixture-request'
+ smtp.assert_not_called();ssl.assert_not_called()
+check('Settings queue selects owner-created personal identity and stores exact server receipt')
 
 from email.parser import BytesParser
 from email import policy
@@ -272,6 +458,44 @@ for label, extra, body in (
  with env.registry.cursor() as cr:
   assert not env(cr=cr)['mailchannels.operation'].search_count([('message_id','=',ident)])
  check(label+' fails before provider call and receipt creation')
+
+# Exercise the inherited browser form, not just ORM create (which ignores view required).
+from odoo.tests import Form
+api_form=Form(Server)
+api_form.name='API form regression'
+api_form.mc_enabled=True
+api_record=api_form.save()
+assert not api_record.smtp_host
+check('API form saves without unused SMTP host')
+smtp_form=Form(Server)
+smtp_form.name='SMTP form control'
+try:
+ smtp_form.save()
+except AssertionError:
+ pass
+else:
+ raise AssertionError('Normal SMTP form lost its host requirement')
+check('normal SMTP form still requires SMTP host')
+
+# Odoo19's inherited Detect Max Limit action passes this keyword to the override.
+with patch('requests.post') as post, patch('smtplib.SMTP') as smtp:
+ try:
+  server.test_smtp_connection(autodetect_max_email_size=True)
+ except UserError as exc:
+  assert 'cannot automatically detect' in str(exc)
+ else:
+  raise AssertionError('API transport claimed SMTP size detection')
+ post.assert_not_called()
+ smtp.assert_not_called()
+check('API size autodetection refuses clearly before network access')
+if hasattr(Server, 'action_retrieve_max_email_size'):
+ from odoo.addons.base.models.ir_mail_server import IrMail_Server
+ plain=Server.create({'name':'SMTP size control','smtp_host':'smtp.example.test'})
+ expected={'type':'ir.actions.client','tag':'fixture-smtp-size-result'}
+ with patch.object(IrMail_Server,'test_smtp_connection',autospec=True,return_value=expected) as upstream:
+  assert plain.action_retrieve_max_email_size()==expected
+  assert upstream.call_args.kwargs=={'autodetect_max_email_size':True}
+ check('Odoo19 SMTP size detection preserves upstream argument and result')
 
 print('RESULT: %s checks; no live API requests or email sent.' % len(checks))
 env.cr.rollback()

@@ -7,6 +7,23 @@
       <xpath expr="//field[@name='name']" position="after">
         <field name="mc_enabled" groups="base.group_system"/>
         <field name="mc_key_variable" invisible="not mc_enabled" groups="base.group_system"/>
+        <div class="text-muted" invisible="not mc_enabled" groups="base.group_system" colspan="2">
+          MailChannels uses HTTPS with certificate verification. SMTP credentials and encryption settings are not used.
+          Enter only the server environment-variable name above, never the API key.
+          Test Connection performs an API dry run and does not send email.
+        </div>
+      </xpath>
+      <xpath expr="//field[@name='smtp_host']" position="attributes">
+        <attribute name="required">not mc_enabled and smtp_authentication != 'cli'</attribute>
+      </xpath>
+      <xpath expr="//field[@name='smtp_port']" position="attributes">
+        <attribute name="required">not mc_enabled and smtp_authentication != 'cli'</attribute>
+      </xpath>
+      <xpath expr="//field[@name='smtp_authentication']/../.." position="attributes">
+        <attribute name="invisible">mc_enabled</attribute>
+      </xpath>
+      <xpath expr="//notebook" position="attributes">
+        <attribute name="invisible">mc_enabled or smtp_authentication == 'cli'</attribute>
       </xpath>
     </field>
   </record>

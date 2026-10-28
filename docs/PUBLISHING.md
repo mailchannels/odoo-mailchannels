@@ -12,7 +12,10 @@ has no release tag and has not been submitted to Odoo Apps.
 2. Establish isolated self-hosted/Odoo.sh acceptance environments for both 19.0
    and 20.0. Standard Odoo Online cannot install this Python module. Provision
    credentials through the host environment; confirm that every intended worker
-   receives the correct secret and that company/server boundaries are appropriate.
+   receives the correct secret. Settings administrators share receipt metadata and
+   ownerless outgoing-server configuration across companies; company selection and
+   named key variables do not isolate them. Use separate Odoo deployments with
+   separate databases when that administrator boundary is required.
 3. Complete the release gates below and rerun the pinned native suites. Create
    version-specific branches or repositories with the built `mail_mailchannels`
    addon at the root expected by the Apps scanner. The development root must not
@@ -33,20 +36,35 @@ has no release tag and has not been submitted to Odoo Apps.
 - Complete receipt reconciliation, retention and retirement of used installations.
   Do not delete receipts to unlock a send or uninstall. Archive API servers and
   retain the module until a reviewed migration/retirement plan is implemented.
-- Finish invoice PDF, sales/chatter, notifications and marketing workflows;
-  preserve native permissions and suppression/unsubscribe behavior. Password
+- Finish complete invoice/sales/chatter, notifications and marketing workflows;
+  the native quotation template and posted-invoice Send Invoice wizard have mocked
+  PDF/recipient/chatter coverage, not full accounting/browser acceptance. Preserve
+  native permissions and suppression/unsubscribe behavior. Password
   reset has native mocked coverage but no received-mail/browser completion test.
 - Resolve known BCC-only and virtual-To-only limitations. Verify MIME/provider
   size limits and additional supported formats. The mapper is not SMTP-equivalent.
-- Validate UI, RPC, multi-company isolation and actual Odoo.sh secret provisioning.
+- Validate the intended deployment/administrator boundary, remaining company/role
+  UI and RPC behavior, personal-server setup/management UI and actual Odoo.sh secret
+  provisioning.
+  Native two-company checks establish shared Settings administration, not company isolation.
+  Native personal-server checks cover selection and forced-send eligibility, including
+  queue processing by a different Settings administrator; they do not establish
+  caller-based privacy or full personal-server setup acceptance.
   Masked UI fields alone do not establish credential isolation.
 - Validate domain authorization, envelope sender and incoming alias/catchall
   configuration. The API generates Message-ID; this transport preserves the
   original in References. Test actual reply threading, including clients that
   trim References, and actual bounce routing before claiming compatibility.
+  Synthetic native incoming qualification on pinned Odoo19/20 images covers
+  retained reply References and preserved outer DSN References only. Enclosed
+  References alone fail with an unknown rewritten ID; stock single-partner
+  fallback and repeated DSN bounce-counter increments remain limits. This does
+  not establish real provider delivery or header preservation.
 - Perform an explicitly authorized real-account dry-run, then separately
   authorized delivery/reply/bounce testing. A connection test must not mark
-  business mail sent. HTTP acceptance is not inbox delivery.
+  business mail sent. HTTP acceptance is not inbox delivery. Odoo's invoice Sent
+  flag can mean only PDF generation; operators must check queue/notification and
+  receipt state, and reconcile an unknown outcome before creating a replacement.
 - Validate historic schema/cross-major migrations and production backup/restore
   procedures. Tests cover same-version module refresh and normal uninstall only.
 
