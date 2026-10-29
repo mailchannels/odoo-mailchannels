@@ -19,11 +19,11 @@ ENDPOINT_PARAM = 'mail_mailchannels.api_endpoint'
 def _valid_endpoint(url):
     try:
         parts = urlsplit(url)
-        port = parts.port
     except ValueError:
         return False
     host = (parts.hostname or '').lower()
-    return (parts.scheme == 'https' and port in (None, 443) and not parts.username and not parts.password
+    return (parts.scheme == 'https' and ':' not in parts.netloc
+            and not parts.username and not parts.password
             and not parts.query and not parts.fragment and parts.path.endswith('/send')
             and (host == 'mailchannels.net' or host.endswith('.mailchannels.net')))
 

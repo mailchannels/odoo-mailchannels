@@ -125,7 +125,8 @@ with patch.object(type(Server),'_disable_send',return_value=False),patch('reques
  for bad in ('http://alb-test.dev.mailchannels.net/tx/v1/send','https://example.test/tx/v1/send',
              'https://evilmailchannels.net/tx/v1/send','https://user@api.mailchannels.net/tx/v1/send',
              'https://api.mailchannels.net:8443/tx/v1/send','https://api.mailchannels.net/tx/v1/send?x=1',
-             'https://api.mailchannels.net/tx/v1','https://api.mailchannels.net:bad/tx/v1/send'):
+             'https://api.mailchannels.net/tx/v1','https://api.mailchannels.net:bad/tx/v1/send',
+             'https://api.mailchannels.net:443/tx/v1/send','https://api.mailchannels.net:/tx/v1/send'):
   set_endpoint(bad)
   try:Server.send_email(message(),mail_server_id=server.id)
   except UserError:pass
