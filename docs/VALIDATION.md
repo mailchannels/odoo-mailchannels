@@ -18,7 +18,7 @@ ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 test
 ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 tests/run.py
 ```
 
-The suite includes 53 native checks on19 and52 on20: queue/session routing, the
+The suite includes 54 native checks on19 and53 on20: queue/session routing, the
 administrator-only HTTPS `*.mailchannels.net` endpoint override, recipient
 and attachment mapping, native no-send mode, accepted replay, rollback and worker
 failure protection, overlapping recipient rejection, concurrent submissions,
