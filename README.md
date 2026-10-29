@@ -17,6 +17,8 @@ The builder uses the correct version-specific access-control format: Odoo 20 `ir
 
 Provision the API key through the server's secret-management/environment mechanism, using `MAILCHANNELS_ODOO_API_KEY` or another dedicated `MAILCHANNELS_*API_KEY` name. Never put the key in source, a module manifest, screenshots or a browser form. The model stores only the environment-variable name. All workers must receive the same intended configuration. Separate servers can use different named variables.
 
+Requests go to the production endpoint `https://api.mailchannels.net/tx/v1/send`. For testing against a non-production Email API host, a Settings administrator can set the system parameter `mail_mailchannels.api_endpoint` to another `https://*.mailchannels.net/.../send` URL. Any other value (HTTP, another host, a port, credentials, a query string) is refused before a submission receipt is reserved and nothing is sent. Remove the parameter to return to production.
+
 As an administrator, configure an outgoing mail server and enable **Use MailChannels Email API**. Configure its normal FROM filter/priority carefully. For API servers, the form hides SMTP authentication/connection controls and does not require an SMTP host. The SMTP host, port, encryption and password settings are not used: HTTPS always verifies TLS, uses a fixed provider URL and does not follow redirects. Normal mail servers remain on their existing transport.
 
 Odoo19’s **Detect Max Limit** action is SMTP-specific. It is hidden for API servers, and direct API-mode invocation raises a clear error without a network request. Ordinary SMTP servers retain native size detection. Configure attachment handling against the current Email API limits; SMTP SIZE negotiation cannot discover them.

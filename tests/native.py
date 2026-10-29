@@ -111,6 +111,35 @@ with patch.object(type(Server),'_disable_send',return_value=False),patch('reques
  assert post.call_count==1
  check('per-recipient receipts prevent changed-envelope overlap resend')
 
+# Administrator-only endpoint override: default production, HTTPS *.mailchannels.net only.
+from odoo.exceptions import UserError
+Param=env['ir.config_parameter'].sudo()
+set_endpoint=lambda v:Param.set_str('mail_mailchannels.api_endpoint',v) if hasattr(Param,'set_str') else Param.set_param('mail_mailchannels.api_endpoint',v)
+with patch.object(type(Server),'_disable_send',return_value=False),patch('requests.post',return_value=Response()) as post:
+ Server.send_email(message(),mail_server_id=server.id)
+ assert post.call_args.args[0]=='https://api.mailchannels.net/tx/v1/send'
+ set_endpoint('https://alb-test.dev.mailchannels.net/tx/v1/send')
+ Server.send_email(message(),mail_server_id=server.id)
+ assert post.call_args.args[0]=='https://alb-test.dev.mailchannels.net/tx/v1/send' and post.call_count==2
+ receipts=env['mailchannels.operation'].sudo().search_count([])
+ for bad in ('http://alb-test.dev.mailchannels.net/tx/v1/send','https://example.test/tx/v1/send',
+             'https://evilmailchannels.net/tx/v1/send','https://user@api.mailchannels.net/tx/v1/send',
+             'https://api.mailchannels.net:8443/tx/v1/send','https://api.mailchannels.net/tx/v1/send?x=1',
+             'https://api.mailchannels.net/tx/v1','https://api.mailchannels.net:bad/tx/v1/send'):
+  set_endpoint(bad)
+  try:Server.send_email(message(),mail_server_id=server.id)
+  except UserError:pass
+  else:raise AssertionError('Endpoint override must be refused: '+bad)
+ assert post.call_count==2 and env['mailchannels.operation'].sudo().search_count([])==receipts
+ set_endpoint(False)
+ Server.send_email(message(),mail_server_id=server.id)
+ assert post.call_args.args[0]=='https://api.mailchannels.net/tx/v1/send'
+ check('endpoint override is HTTPS mailchannels.net only, refused before receipts, default production')
+from odoo.exceptions import AccessError
+try:env['ir.config_parameter'].with_user(env.ref('base.public_user')).search([('key','=','mail_mailchannels.api_endpoint')])
+except AccessError:check('endpoint override parameter is not readable by non-administrators')
+else:raise AssertionError('Non-administrators must not read the endpoint parameter')
+
 response=Response();response.status_code=200
 with patch('requests.post',return_value=response) as post:
  server.test_smtp_connection()
