@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+from urllib.parse import urlsplit
 
 import requests
 from odoo import api, fields, models
@@ -11,6 +12,20 @@ from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 from ..mime import convert
 
 ENDPOINT = 'https://api.mailchannels.net/tx/v1/send'
+# Administrator-only system parameter for testing against a non-production Email API host.
+ENDPOINT_PARAM = 'mail_mailchannels.api_endpoint'
+
+
+def _valid_endpoint(url):
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return False
+    host = (parts.hostname or '').lower()
+    return (parts.scheme == 'https' and ':' not in parts.netloc
+            and not parts.username and not parts.password
+            and not parts.query and not parts.fragment and parts.path.endswith('/send')
+            and (host == 'mailchannels.net' or host.endswith('.mailchannels.net')))
 
 
 class APISession:
@@ -59,6 +74,7 @@ class MailServer(models.Model):
             server, smtp_from = self.sudo()._find_mail_server(smtp_from)
         if server and server.mc_enabled:
             server._mc_key()
+            server._mc_endpoint()
             return APISession(server, smtp_from)
         return super()._connect__(host=host, port=port, user=user, password=password,
                                   encryption=encryption, smtp_from=smtp_from,
@@ -93,13 +109,24 @@ class MailServer(models.Model):
         return {'type': 'ir.actions.client', 'tag': 'display_notification',
                 'params': {'type': 'success', 'message': 'Validation completed; no email sent.', 'sticky': False}}
 
-    def _mc_request(self, payload, dry_run=False):
-        return requests.post(ENDPOINT, params={'dry-run': 'true'} if dry_run else None,
+    def _mc_endpoint(self):
+        # Only base.group_system can read or write ir.config_parameter; unset means production.
+        params = self.env['ir.config_parameter'].sudo()
+        # Odoo 20 replaced get_param with typed getters.
+        value = params.get_str(ENDPOINT_PARAM) if hasattr(params, 'get_str') else params.get_param(ENDPOINT_PARAM)
+        url = (value or '').strip() or ENDPOINT
+        if not _valid_endpoint(url):
+            raise UserError('The MailChannels endpoint override must be an https://*.mailchannels.net/.../send URL. No email was sent.')
+        return url
+
+    def _mc_request(self, payload, dry_run=False, endpoint=None):
+        return requests.post(endpoint or self._mc_endpoint(), params={'dry-run': 'true'} if dry_run else None,
                              json=payload, headers={'X-Api-Key': self._mc_key(), 'User-Agent': 'MailChannels-Odoo/0.1'},
                              timeout=(5, 30), allow_redirects=False, verify=True)
 
     def _mc_submit(self, payload, message_id):
         self.ensure_one()
+        endpoint = self._mc_endpoint()  # Refuse a bad override before any receipt is reserved.
         body_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         recipients = sorted(item['email'].casefold() for p in payload['personalizations']
                             for kind in ('to', 'cc', 'bcc') for item in p.get(kind, []))
@@ -128,7 +155,7 @@ class MailServer(models.Model):
             cr.commit()
         state, status, request_id = 'unknown', 0, ''
         try:
-            response = self._mc_request(payload)
+            response = self._mc_request(payload, endpoint=endpoint)
             status = response.status_code
             if status == 202:
                 state = 'accepted'
