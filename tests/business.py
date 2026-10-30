@@ -397,7 +397,7 @@ with (
  completed_cases.append('R5')
  print('PASS_INBOUND: R5 unmatched references refuse without route or mutation')
 
- def dsn(case,recipient,outer_refs=None):
+ def dsn(case,recipient,outer_refs=None,microsoft=False):
   message=EmailMessage(policy=policy.SMTP)
   message['From']='MAILER-DAEMON@example.test'
   message['To']=envelope_address
@@ -418,7 +418,12 @@ with (
   ]:failure[name]=value
   status.set_payload([reporting,failure])
   enclosed=EmailMessage(policy=policy.SMTP)
-  enclosed['Message-ID']=provider_id;enclosed['References']=references
+  if microsoft:
+   # Exchange rewrites Message-ID and keeps the provider ID in its own header.
+   enclosed['Message-ID']='<exchange-rewritten@example.test>'
+   enclosed['X-Microsoft-Original-Message-ID']=provider_id
+  else:enclosed['Message-ID']=provider_id
+  enclosed['References']=references
   enclosed['From']=accepted_payload['from']['email'];enclosed['To']=customer.email_normalized
   enclosed['Reply-To']=reply_address;enclosed['Subject']=accepted_payload['subject']
   enclosed.set_content('Synthetic enclosed original')
@@ -430,9 +435,9 @@ with (
  # D2 first: it must see the notification unbounced. D1 quotes only the provider Message-ID.
  for case,partner,outer in [
   ('D2',wrong_partner,references),('D1',customer,None),
-  ('D3',customer,references),('D4',customer,references),
+  ('D3',customer,references),('D4',customer,references),('D5',customer,None),
  ]:
-  dsn_bytes=positive_dsn if case=='D4' else dsn(case,partner.email_normalized,outer)
+  dsn_bytes=positive_dsn if case=='D4' else dsn(case,partner.email_normalized,outer,case=='D5')
   parsed,result,before,after=process(case,dsn_bytes)
   assert parsed['is_bounce'] and parsed['bounced_email']==partner.email_normalized
   assert parsed['bounced_partner']==partner
@@ -446,8 +451,8 @@ with (
    assert old['id']==new['id']
    assert new['message_bounce']==old['message_bounce']+(old['id']==partner.id)
   assert parsed['bounced_message']==original
-  # D1 has no outer References, so only the receipt mapping finds the original; no thread parent.
-  assert parsed.get('parent_id')==(None if case=='D1' else original.id)
+  # D1/D5 have no outer References, so only the receipt mapping finds the original; no thread parent.
+  assert parsed.get('parent_id')==(None if case in ('D1','D5') else original.id)
   if case=='D2':
    assert target.notification_status=='sent' and after['notifications']==before['notifications']
   else:
@@ -456,7 +461,7 @@ with (
    assert 'Fixture delivery failed: mailbox unavailable.' in target.failure_reason
    assert ([n for n in after['notifications'] if n['id']!=target.id]
     ==[n for n in before['notifications'] if n['id']!=target.id])
-   if case in ('D3','D4'):assert after['notifications']==before['notifications']
+   if case in ('D3','D4','D5'):assert after['notifications']==before['notifications']
    positive_dsn=dsn_bytes
   assert original_mail.state=='sent'
   completed_cases.append(case)
