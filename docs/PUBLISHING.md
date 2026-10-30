@@ -56,10 +56,10 @@ has no release tag and has not been submitted to Odoo Apps.
   original in References. Test actual reply threading, including clients that
   trim References, and actual bounce routing before claiming compatibility.
   Synthetic native incoming qualification on pinned Odoo19/20 images covers
-  retained reply References and preserved outer DSN References only. Enclosed
-  References alone fail with an unknown rewritten ID; stock single-partner
-  fallback and repeated DSN bounce-counter increments remain limits. This does
-  not establish real provider delivery or header preservation.
+  retained reply References, preserved outer DSN References and DSNs that quote
+  only the MailChannels Message-ID, which the receipt maps to the original. Stock
+  single-partner fallback and repeated DSN bounce-counter increments remain
+  limits. This does not establish real provider delivery or header preservation.
 - Perform an explicitly authorized real-account dry-run, then separately
   authorized delivery/reply/bounce testing. A connection test must not mark
   business mail sent. HTTP acceptance is not inbox delivery. Odoo's invoice Sent
