@@ -18,7 +18,7 @@ ODOO_TEST_VERSION=19.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 test
 ODOO_TEST_VERSION=20.0 ODOO_LIFECYCLE_TESTS=1 ODOO_BUSINESS_TESTS=1 python3 tests/run.py
 ```
 
-The suite includes 54 native checks on19 and53 on20: queue/session routing, the
+The suite includes 56 native checks on19 and55 on20: queue/session routing, the
 administrator-only HTTPS `*.mailchannels.net` endpoint override, recipient
 and attachment mapping, native no-send mode, accepted replay, rollback and worker
 failure protection, overlapping recipient rejection, concurrent submissions,
@@ -322,10 +322,10 @@ IDs on Odoo20. Unrouted DSNs return False on19 and an empty mail.thread recordse
 on20; duplicate replies return False on both. Assertions check these native values
 without converting the return type.
 
-Multipart/report DSNs cover an unknown rewritten enclosed ID with only enclosed
+Multipart/report DSNs cover an enclosed MailChannels Message-ID with no outer
 References, a real known wrong Final-Recipient partner, preserved outer References,
-and repetition of the same positive DSN. Enclosed References alone do not match
-the original. Outer References match the original notification only when the
+and repetition of the same positive DSN. The enclosed MailChannels Message-ID is
+mapped through the receipt's stored provider Message-ID to the original message. Outer References match the original notification only when the
 recipient also matches; it becomes bounce/mail_bounce with the native plain-text
 reason. The native fallback to a sole notification partner when no recipient
 partner is found remains a limit; the wrong-recipient fixture deliberately uses a

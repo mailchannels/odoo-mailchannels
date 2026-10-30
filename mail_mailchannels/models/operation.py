@@ -18,4 +18,6 @@ class MailchannelsOperation(models.Model):
                              required=True, readonly=True)
     http_status = fields.Integer(readonly=True)
     request_id = fields.Char(readonly=True)
+    # The API replaces Message-ID; bounce reports quote this value, so it maps a DSN back to message_id.
+    provider_message_id = fields.Char(readonly=True, index=True)
     # No body, API key, recipient list or provider response is stored.

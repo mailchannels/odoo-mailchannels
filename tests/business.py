@@ -178,8 +178,10 @@ incoming_wizard=env['account.move.send.wizard'].with_context(
  'move_id':incoming_invoice.id,'sending_methods':['email'],'template_id':incoming_template.id})
 assert incoming_wizard.template_id==incoming_template and incoming_wizard.mail_partner_ids==customer
 
+provider_id='<synthetic-provider-unknown@example.test>'
 class IncomingResponse(Response):
- def json(self):return {'request_id':'inbound-acceptance-fixture'}
+ # Real /send acceptance shape: one result carrying the Message-ID MailChannels assigned.
+ def json(self):return {'request_id':'inbound-acceptance-fixture','results':[{'index':0,'status':'sent','message_id':provider_id}]}
 
 completed_cases=[]
 with (
@@ -425,8 +427,9 @@ with (
   message.attach(explanation);message.attach(status);message.attach(original_part)
   return message.as_bytes()
 
+ # D2 first: it must see the notification unbounced. D1 quotes only the provider Message-ID.
  for case,partner,outer in [
-  ('D1',customer,None),('D2',wrong_partner,references),
+  ('D2',wrong_partner,references),('D1',customer,None),
   ('D3',customer,references),('D4',customer,references),
  ]:
   dsn_bytes=positive_dsn if case=='D4' else dsn(case,partner.email_normalized,outer)
@@ -442,11 +445,10 @@ with (
   for old,new in zip(before['counters'],after['counters']):
    assert old['id']==new['id']
    assert new['message_bounce']==old['message_bounce']+(old['id']==partner.id)
-  if case=='D1':
-   assert not parsed['bounced_message'] and not parsed.get('parent_id')
-  else:
-   assert parsed['bounced_message']==original and parsed['parent_id']==original.id
-  if case in ('D1','D2'):
+  assert parsed['bounced_message']==original
+  # D1 has no outer References, so only the receipt mapping finds the original; no thread parent.
+  assert parsed.get('parent_id')==(None if case=='D1' else original.id)
+  if case=='D2':
    assert target.notification_status=='sent' and after['notifications']==before['notifications']
   else:
    assert target.notification_status=='bounce' and target.failure_type=='mail_bounce'
@@ -454,7 +456,7 @@ with (
    assert 'Fixture delivery failed: mailbox unavailable.' in target.failure_reason
    assert ([n for n in after['notifications'] if n['id']!=target.id]
     ==[n for n in before['notifications'] if n['id']!=target.id])
-   if case=='D4':assert after['notifications']==before['notifications']
+   if case in ('D3','D4'):assert after['notifications']==before['notifications']
    positive_dsn=dsn_bytes
   assert original_mail.state=='sent'
   completed_cases.append(case)
