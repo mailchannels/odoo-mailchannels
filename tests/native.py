@@ -146,6 +146,15 @@ with patch('requests.post',return_value=response) as post:
  server.test_smtp_connection()
  assert post.call_args.kwargs['params']=={'dry-run':'true'}
  check('configuration validation uses dry-run, not queue delivery')
+env.user.email='validator@example.test'
+refused=Response();refused.status_code=403
+refused.json=lambda:{'errors':['Can only send to verified email addresses. Unverified recipients: x@example.test']}
+with patch('requests.post',return_value=refused) as post:
+ try:server.test_smtp_connection()
+ except UserError as e:assert 'HTTP 403' in str(e) and 'verified email addresses' in str(e),str(e)
+ else:raise AssertionError('A refused dry-run must raise')
+ assert [p['email'] for p in post.call_args.kwargs['json']['personalizations'][0]['to']]==['validator@example.test']
+ check('dry-run goes to the signed-in user and explains API refusals')
 
 with patch('requests.post') as post,patch.dict(os.environ,{'MAILCHANNELS_ODOO_API_KEY':''}):
  with patch.object(type(Server),'_disable_send',return_value=False):

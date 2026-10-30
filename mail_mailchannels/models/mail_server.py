@@ -28,6 +28,17 @@ def _valid_endpoint(url):
             and (host == 'mailchannels.net' or host.endswith('.mailchannels.net')))
 
 
+def _api_errors(response):
+    # The API explains refusals in {"errors": [...]}; show a bounded excerpt, never the request.
+    try:
+        errors = response.json().get('errors')
+    except (ValueError, AttributeError):
+        return ''
+    if not isinstance(errors, list) or not errors:
+        return ''
+    return ' ' + ' '.join(str(e) for e in errors[:3])[:300]
+
+
 class APISession:
     def __init__(self, server, sender):
         self.server = server
@@ -105,9 +116,18 @@ class MailServer(models.Model):
             except requests.RequestException:
                 raise UserError('MailChannels validation could not complete. No email was sent.') from None
             if response.status_code != 200:
-                raise UserError('MailChannels dry-run validation failed (HTTP %s).' % response.status_code)
+                raise UserError('MailChannels dry-run validation failed (HTTP %s).%s'
+                                % (response.status_code, _api_errors(response)))
         return {'type': 'ir.actions.client', 'tag': 'display_notification',
                 'params': {'type': 'success', 'message': 'Validation completed; no email sent.', 'sticky': False}}
+
+    def _get_test_email_to(self):
+        # Odoo's default noreply@odoo.com is refused by accounts that may only send to verified
+        # addresses (new accounts without a card); the dry-run goes to the signed-in user instead.
+        self.ensure_one()
+        if self.mc_enabled and self.env.user.email:
+            return self.env.user.email
+        return super()._get_test_email_to()
 
     def _mc_endpoint(self):
         # Only base.group_system can read or write ir.config_parameter; unset means production.
