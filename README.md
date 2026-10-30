@@ -78,7 +78,9 @@ remaining workflow and provider-limit checks still apply.
 Synthetic native incoming qualification on the pinned Odoo 19/20 images covers
 invoice replies and DSN notifications after mocked API acceptance. Replies retain
 the original References; the positive DSN retains them in its outer headers.
-Enclosed References alone do not match an unknown rewritten provider Message-ID.
+MailChannels replaces Message-ID, and bounce reports quote the replaced value. Each
+receipt stores the Message-ID the API returns, so a DSN that quotes only that value
+still finds the original message and marks its notification bounced.
 Inbox-only followers and deliberate no-route controls bound this coverage.
 Current incoming-mail/alias/catchall configuration and separately authorized real
 received-mail tests remain necessary. Provider Message-ID/header preservation and

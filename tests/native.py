@@ -50,6 +50,22 @@ with patch.object(type(Server),'_disable_send',return_value=False), patch('reque
  assert post.call_count==count
  check('committed submission receipt survives caller rollback')
 
+class ResultResponse(Response):
+ def json(self):return {'request_id':'5ENIjEuo1lGSGO4q+C7B/niCa1M=','results':[{'index':0,'status':'sent','message_id':'<AMvk+LB/AB6S=@tx.mailchannels.net>'}]}
+with patch.object(type(Server),'_disable_send',return_value=False), patch('requests.post',return_value=ResultResponse()):
+ m=message();sent_id=m['Message-ID'];Server.send_email(m,mail_server_id=server.id)
+with env.registry.cursor() as cr:
+ row=env(cr=cr)['mailchannels.operation'].sudo().search([('message_id','=',sent_id)])
+ assert len(row)==1 and row.request_id=='5ENIjEuo1lGSGO4q+C7B/niCa1M=' and row.provider_message_id=='<AMvk+LB/AB6S=@tx.mailchannels.net>',row.read()
+check('receipt keeps base64 request ID and the provider Message-ID for bounce mapping')
+class OddResponse(Response):
+ def json(self):return {'request_id':'x','results':[{'message_id':'not-an-id'},{'message_id':'<a@b.c>'}]}
+with patch.object(type(Server),'_disable_send',return_value=False), patch('requests.post',return_value=OddResponse()):
+ m=message();odd_id=m['Message-ID'];Server.send_email(m,mail_server_id=server.id)
+with env.registry.cursor() as cr:
+ assert not env(cr=cr)['mailchannels.operation'].sudo().search([('message_id','=',odd_id)]).provider_message_id
+check('unexpected result shapes store no provider Message-ID')
+
 with patch.object(type(Server),'_disable_send',return_value=False), patch('requests.post',side_effect=requests.Timeout('fixture private detail')) as post:
  m=message()
  for attempt in range(2):

@@ -173,7 +173,7 @@ class MailServer(models.Model):
                                      'state': 'submitting'} for key in keys])
             receipt_ids = rows.ids
             cr.commit()
-        state, status, request_id = 'unknown', 0, ''
+        state, status, request_id, provider_id = 'unknown', 0, '', ''
         try:
             response = self._mc_request(payload, endpoint=endpoint)
             status = response.status_code
@@ -182,7 +182,14 @@ class MailServer(models.Model):
                 try:
                     data = response.json()
                     candidate = data.get('request_id', '') if isinstance(data, dict) else ''
-                    request_id = candidate if isinstance(candidate, str) and re.fullmatch(r'[A-Za-z0-9._:-]{1,200}', candidate) else ''
+                    # Request IDs are base64, so '=', '+' and '/' occur.
+                    request_id = candidate if isinstance(candidate, str) and re.fullmatch(r'[A-Za-z0-9._:=+/-]{1,200}', candidate) else ''
+                    results = data.get('results') if isinstance(data, dict) else None
+                    # One personalization per submission, so one result carries its Message-ID.
+                    if isinstance(results, list) and len(results) == 1 and isinstance(results[0], dict):
+                        candidate = results[0].get('message_id', '')
+                        if isinstance(candidate, str) and re.fullmatch(r'<[A-Za-z0-9._=+/-]{1,200}@[A-Za-z0-9.-]{1,200}>', candidate):
+                            provider_id = candidate
                 except (ValueError, TypeError):
                     pass  # HTTP acceptance is not negated by a malformed receipt body.
             elif status in (400, 401, 403, 404, 413, 422, 429):
@@ -192,7 +199,8 @@ class MailServer(models.Model):
         finally:
             with self.env.registry.cursor() as cr:
                 self.env(cr=cr)['mailchannels.operation'].sudo().browse(receipt_ids).write(
-                    {'state': state, 'http_status': status, 'request_id': request_id})
+                    {'state': state, 'http_status': status, 'request_id': request_id,
+                     'provider_message_id': provider_id or False})
                 cr.commit()
         if state != 'accepted':
             raise MailDeliveryException('MailChannels submission %s (HTTP %s). Review the receipt before any resend.' % (state, status or 'unknown'))
