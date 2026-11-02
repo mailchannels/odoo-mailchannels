@@ -114,7 +114,7 @@ The runner builds the same version-specific module used for installation, create
 
 Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, real incoming reply and bounce tests, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, publisher account setup, real account dry-run, separately authorized delivery and Apps review.
 
-Support owner: dev@mailchannels.com (confirmed by MailChannels). A company Odoo Apps publisher account still needs to be established. This local beta is not yet published or production-ready.
+A company Odoo Apps publisher account still needs to be established. This local beta is not yet published or production-ready.
 
 Native password reset is now exercised on Odoo 19 and 20 with auth_signup installed: actual template/queue/default-server selection, one mocked API POST, no SMTP, correct recipient and valid owner-bound reset link; reset token absent from receipts. See [validation coverage](docs/VALIDATION.md). Browser reset and actual delivery are still unverified.
 
