@@ -4,6 +4,12 @@ Unreleased development preview for Odoo 20.0 and 19.0 on self-hosted Odoo or Odo
 
 The module adds an opt-in MailChannels transport to outgoing mail servers. It preserves Odoo's server selection, prepared envelope and no-send guard, uses the HTTPS Email API, and keeps the original Odoo message ID for threading while passing it in References. API acceptance is not delivery confirmation.
 
+## Support
+
+This project is supported by the MailChannels team on a best-effort basis. The best way to get support is to file an issue on GitHub: https://github.com/mailchannels/odoo-mailchannels/issues
+
+If you are a MailChannels customer and have a problem with the operation of the MailChannels service, you can get support at https://support.mailchannels.com/
+
 ## Build and install
 
 Build into a new directory outside this source tree:
