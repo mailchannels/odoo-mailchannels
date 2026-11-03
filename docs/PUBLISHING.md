@@ -1,13 +1,14 @@
 # Company publisher and release handoff
 
-No existing Odoo Apps publisher account is assumed. This repository has no
-release tag and has not been submitted to Odoo Apps. Support follows the public
+A company-controlled Odoo publisher account exists. No repository is registered
+and no publisher terms are accepted yet; terms that commit the company need company
+approval before registration. This repository has no release tag and has not been
+submitted to Odoo Apps. Support follows the public
 policy in the README: this project is supported by the MailChannels team on a
 best-effort basis; file an issue at
 https://github.com/mailchannels/odoo-mailchannels/issues for project support.
 MailChannels customers with service-operation problems should use
-https://support.mailchannels.com/. A named release operator and
-company-controlled publisher account still need to be assigned.
+https://support.mailchannels.com/. A named release operator still needs to be assigned.
 
 1. Establish a company-controlled Odoo account and inspect the
    [Apps upload route](https://apps.odoo.com/apps/upload) and
@@ -64,8 +65,11 @@ company-controlled publisher account still need to be assigned.
   only the MailChannels Message-ID, which the receipt maps to the original. Stock
   single-partner fallback and repeated DSN bounce-counter increments remain
   limits. This does not establish real provider delivery or header preservation.
-- Perform an explicitly authorized real-account dry-run, then separately
-  authorized delivery/reply/bounce testing. A connection test must not mark
+- Authorized live testing against a MailChannels test environment passed on
+  Odoo 19 and 20: connection dry-run, delivery with Reply-To and Return-Path kept
+  and Odoo IDs in References, a reply routed to the original record, and a real
+  DSN marking the notification bounced through the stored MailChannels
+  Message-ID. Production-account acceptance remains open. A connection test must not mark
   business mail sent. HTTP acceptance is not inbox delivery. Odoo's invoice Sent
   flag can mean only PDF generation; operators must check queue/notification and
   receipt state, and reconcile an unknown outcome before creating a replacement.
