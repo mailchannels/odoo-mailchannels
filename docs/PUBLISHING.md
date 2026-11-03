@@ -1,9 +1,13 @@
 # Company publisher and release handoff
 
-No existing Odoo Apps publisher account is assumed. Support is
-[dev@mailchannels.com](mailto:dev@mailchannels.com); a named release operator and
-company-controlled publisher account still need to be assigned. This repository
-has no release tag and has not been submitted to Odoo Apps.
+No existing Odoo Apps publisher account is assumed. This repository has no
+release tag and has not been submitted to Odoo Apps. Support follows the public
+policy in the README: this project is supported by the MailChannels team on a
+best-effort basis; file an issue at
+https://github.com/mailchannels/odoo-mailchannels/issues for project support.
+MailChannels customers with service-operation problems should use
+https://support.mailchannels.com/. A named release operator and
+company-controlled publisher account still need to be assigned.
 
 1. Establish a company-controlled Odoo account and inspect the
    [Apps upload route](https://apps.odoo.com/apps/upload) and

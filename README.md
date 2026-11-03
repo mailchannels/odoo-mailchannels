@@ -4,6 +4,12 @@ Unreleased development preview for Odoo 20.0 and 19.0 on self-hosted Odoo or Odo
 
 The module adds an opt-in MailChannels transport to outgoing mail servers. It preserves Odoo's server selection, prepared envelope and no-send guard, uses the HTTPS Email API, and keeps the original Odoo message ID for threading while passing it in References. API acceptance is not delivery confirmation.
 
+## Support
+
+This project is supported by the MailChannels team on a best-effort basis. The best way to get support is to file an issue on GitHub: https://github.com/mailchannels/odoo-mailchannels/issues
+
+If you are a MailChannels customer and have a problem with the operation of the MailChannels service, you can get support at https://support.mailchannels.com/
+
 ## Build and install
 
 Build into a new directory outside this source tree:
@@ -108,7 +114,7 @@ The runner builds the same version-specific module used for installation, create
 
 Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, real incoming reply and bounce tests, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, publisher account setup, real account dry-run, separately authorized delivery and Apps review.
 
-Support owner: dev@mailchannels.com (confirmed by MailChannels). A company Odoo Apps publisher account still needs to be established. This local beta is not yet published or production-ready.
+A company Odoo Apps publisher account still needs to be established. This local beta is not yet published or production-ready.
 
 Native password reset is now exercised on Odoo 19 and 20 with auth_signup installed: actual template/queue/default-server selection, one mocked API POST, no SMTP, correct recipient and valid owner-bound reset link; reset token absent from receipts. See [validation coverage](docs/VALIDATION.md). Browser reset and actual delivery are still unverified.
 
