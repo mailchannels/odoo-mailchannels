@@ -88,9 +88,10 @@ MailChannels replaces Message-ID, and bounce reports quote the replaced value. E
 receipt stores the Message-ID the API returns, so a DSN that quotes only that value
 still finds the original message and marks its notification bounced.
 Inbox-only followers and deliberate no-route controls bound this coverage.
-Current incoming-mail/alias/catchall configuration and separately authorized real
-received-mail tests remain necessary. Provider Message-ID/header preservation and
-delivery have not been verified. See [validation coverage](docs/VALIDATION.md).
+Authorized live testing in a MailChannels test environment later confirmed a real
+reply and DSN on Odoo 19 and 20 (see [publishing requirements](docs/PUBLISHING.md));
+each installation still needs its own incoming-mail/alias/catchall configuration
+checked, and production-account acceptance remains open. See [validation coverage](docs/VALIDATION.md).
 
 ## Validation
 
@@ -112,9 +113,9 @@ installation scenario; that test step is not an operator recovery procedure.
 
 The runner builds the same version-specific module used for installation, creates a disposable PostgreSQL/Odoo environment on an internal Docker network, installs the real module and exercises ORM/queue behavior through `odoo shell`. Requests are mocked; no external API/email traffic is permitted. Containers, network and temporary addon files are removed afterwards. Exact image digests are pinned in `tests/run.py`; see [validation coverage](docs/VALIDATION.md).
 
-Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, real incoming reply and bounce tests, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, publisher account setup, real account dry-run, separately authorized delivery and Apps review.
+Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, production-account acceptance, publisher terms and repository registration, and Apps review. Authorized live testing against a MailChannels test environment passed on Odoo 19 and 20 (connection dry-run, delivery, a reply routed to the original record and a real DSN marking the notification bounced); see [publishing requirements](docs/PUBLISHING.md).
 
-A company Odoo Apps publisher account still needs to be established. This local beta is not yet published or production-ready.
+A company-controlled Odoo publisher account exists, but no repository is registered and no publisher terms are accepted. This beta is not yet published or production-ready.
 
 Native password reset is now exercised on Odoo 19 and 20 with auth_signup installed: actual template/queue/default-server selection, one mocked API POST, no SMTP, correct recipient and valid owner-bound reset link; reset token absent from receipts. See [validation coverage](docs/VALIDATION.md). Browser reset and actual delivery are still unverified.
 
@@ -178,7 +179,7 @@ a success check. The earlier CSV fixtures retained all14synthetic receipts; fres
 retain all17current receipts and the selected fields, checked against independent ORM snapshots.
 The internal-user native CSV and XLSX HTTP routes are denied.
 See docs/VALIDATION.md for reproduction and limits. Complete role/company, visual/
-accessibility, broader export, business flows and live-provider acceptance remain open.
+accessibility, broader export, business flows and production-account acceptance remain open.
 
 For native quotation-template, posted-invoice wizard and real PDF transport checks, add
 `ODOO_BUSINESS_TESTS=1` to the test command. This installs Sales and starts an
