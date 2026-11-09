@@ -47,7 +47,15 @@ must close before the first tag. Run the live suite against an authorized
 production MailChannels account on Odoo 19 and 20: connection dry-run, delivery
 with Reply-To and Return-Path kept, a reply routed to the original record and a
 real DSN marking the notification bounced. The other gates below ship as known
-limitations. List them in the release notes and the Apps description, and do not
+limitations.
+
+Production-account acceptance passed on 2026-11-09 on Odoo 19 and 20 (main
+d30b8ce), using a MailChannels production test account and a dedicated test domain.
+Test Connection completed its dry-run without writing receipts. One notification per version
+was accepted and delivered with Reply-To and Return-Path kept and Odoo's IDs in
+References. A reply sent through the production API threaded onto the original
+record, and a real DSN marked the notification bounced. The first tag no longer
+waits on any gate. List them in the release notes and the Apps description, and do not
 describe the module as covering them.
 
 ## Known limitations and remaining gates
@@ -84,13 +92,12 @@ describe the module as covering them.
   Odoo 19 and 20: connection dry-run, delivery with Reply-To and Return-Path kept
   and Odoo IDs in References, a reply routed to the original record, and a real
   DSN marking the notification bounced through the stored MailChannels
-  Message-ID. Production-account acceptance remains open. A connection test must not mark
+  Message-ID. Production-account acceptance passed on 2026-11-09 (see above). A connection test must not mark
   business mail sent. HTTP acceptance is not inbox delivery. Odoo's invoice Sent
   flag can mean only PDF generation; operators must check queue/notification and
   receipt state, and reconcile an unknown outcome before creating a replacement.
 - Validate historic schema/cross-major migrations and production backup/restore
   procedures. Tests cover same-version module refresh and normal uninstall only.
 
-Do not tag a release until production-account acceptance passes. After that, the
-first release may ship with the other items above as documented limitations; do
+The first release may ship with the items above as documented limitations; do
 not call it complete for those workflows.
