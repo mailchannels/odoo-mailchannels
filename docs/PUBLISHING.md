@@ -8,7 +8,11 @@ policy in the README: this project is supported by the MailChannels team on a
 best-effort basis; file an issue at
 https://github.com/mailchannels/odoo-mailchannels/issues for project support.
 MailChannels customers with service-operation problems should use
-https://support.mailchannels.com/. A named release operator still needs to be assigned.
+https://support.mailchannels.com/.
+
+Release operator: Deniz Gunay, with Scott McKay as backup (decided 2026-11-09,
+MAR-40). The operator builds the release branches, tags, registers the repository
+and answers Apps review.
 
 1. Establish a company-controlled Odoo account and inspect the
    [Apps upload route](https://apps.odoo.com/apps/upload) and
@@ -36,7 +40,18 @@ https://support.mailchannels.com/. A named release operator still needs to be as
    feedback, and verify the public version pages, downloads, clean installation
    and update path. Repository registration alone is not acceptance.
 
-## Remaining release gates
+## First release decision
+
+Decided 2026-11-09 (MAR-40): production-account acceptance is the only gate that
+must close before the first tag. Run the live suite against an authorized
+production MailChannels account on Odoo 19 and 20: connection dry-run, delivery
+with Reply-To and Return-Path kept, a reply routed to the original record and a
+real DSN marking the notification bounced. The other gates below ship as known
+limitations. List them in the release notes and the Apps description, and do not
+describe the module as covering them.
+
+## Known limitations and remaining gates
+
 
 - Complete receipt reconciliation, retention and retirement of used installations.
   Do not delete receipts to unlock a send or uninstall. Archive API servers and
@@ -76,4 +91,6 @@ https://support.mailchannels.com/. A named release operator still needs to be as
 - Validate historic schema/cross-major migrations and production backup/restore
   procedures. Tests cover same-version module refresh and normal uninstall only.
 
-Do not publish this preview as production-ready while these gates remain open.
+Do not tag a release until production-account acceptance passes. After that, the
+first release may ship with the other items above as documented limitations; do
+not call it complete for those workflows.
