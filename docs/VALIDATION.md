@@ -1,8 +1,10 @@
 # Validation coverage
 
 This is a development preview, not an Odoo Apps release. All provider requests in
-these tests are mocked. No real account, delivered email or reply/bounce flow has
-been validated.
+these tests are mocked. Separately, authorized live testing against a MailChannels
+test environment passed on Odoo 19 and 20: connection dry-run, delivery, a reply
+routed to the original record and a real DSN marking the notification bounced (see
+[publishing requirements](PUBLISHING.md)). Production-account acceptance remains open.
 
 `tests/run.py` builds and installs the same version-specific module a maintainer
 would install. It uses digest-pinned Odoo 19 and 20 images (20260926 builds) and
@@ -173,8 +175,8 @@ resources were preserved. Source-bound logs, seed/read scripts, screenshots, UI
 phase times and hashes are retained in the coordinated MAR-207 evidence package.
 This check establishes one Odoo 20 administrator workflow and one owner role only.
 Full role/company and export matrices, accessibility, provider
-and deployment acceptance, retention/reconciliation/retirement, incoming replies
-and bounces, Odoo.sh, publisher setup and Apps/release gates remain open.
+and deployment acceptance, retention/reconciliation/retirement, Odoo.sh, publisher
+terms/registration and Apps/release gates remain open.
 
 On 2026-10-10 in America/Vancouver, the same bounded procedure passed on pinned
 Odoo 19.0-20260926 using source `5e9b7af3dcda9fbb087c0d3f141e5ac4a7d8ff2b`.
@@ -344,9 +346,9 @@ the inherited lifecycle fixture's normal server retirement.
 
 Synthetic provider IDs and original-reference preservation are fixture assumptions,
 not observed provider behavior. Real provider rewriting/outer DSN shape, clients
-trimming References, alias/catchall delivery configuration, account/domain dry-run
-and separately authorized received-mail/reply/bounce tests remain release gates.
-No provider delivery or header-preservation result is claimed.
+trimming References and alias/catchall delivery configuration remain release gates.
+The later authorized test-environment run in [PUBLISHING.md](PUBLISHING.md) covers
+one real reply and DSN per version; production-account acceptance remains open.
 
 ## Receipt list and CSV export
 
