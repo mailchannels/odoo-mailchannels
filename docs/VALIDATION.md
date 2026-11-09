@@ -4,7 +4,7 @@ This is a development preview, not an Odoo Apps release. All provider requests i
 these tests are mocked. Separately, authorized live testing against a MailChannels
 test environment passed on Odoo 19 and 20: connection dry-run, delivery, a reply
 routed to the original record and a real DSN marking the notification bounced (see
-[publishing requirements](PUBLISHING.md)). Production-account acceptance remains open.
+[publishing requirements](PUBLISHING.md)). Production-account acceptance passed on 2026-11-09 (see PUBLISHING.md).
 
 `tests/run.py` builds and installs the same version-specific module a maintainer
 would install. It uses digest-pinned Odoo 19 and 20 images (20260926 builds) and
@@ -348,7 +348,7 @@ Synthetic provider IDs and original-reference preservation are fixture assumptio
 not observed provider behavior. Real provider rewriting/outer DSN shape, clients
 trimming References and alias/catchall delivery configuration remain release gates.
 The later authorized test-environment run in [PUBLISHING.md](PUBLISHING.md) covers
-one real reply and DSN per version; production-account acceptance remains open.
+one real reply and DSN per version; the same checks passed against a production account on 2026-11-09.
 
 ## Receipt list and CSV export
 

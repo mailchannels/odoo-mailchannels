@@ -91,7 +91,7 @@ Inbox-only followers and deliberate no-route controls bound this coverage.
 Authorized live testing in a MailChannels test environment later confirmed a real
 reply and DSN on Odoo 19 and 20 (see [publishing requirements](docs/PUBLISHING.md));
 each installation still needs its own incoming-mail/alias/catchall configuration
-checked, and production-account acceptance remains open. See [validation coverage](docs/VALIDATION.md).
+checked. Production-account acceptance passed on 2026-11-09. See [validation coverage](docs/VALIDATION.md).
 
 ## Validation
 
@@ -113,9 +113,9 @@ installation scenario; that test step is not an operator recovery procedure.
 
 The runner builds the same version-specific module used for installation, creates a disposable PostgreSQL/Odoo environment on an internal Docker network, installs the real module and exercises ORM/queue behavior through `odoo shell`. Requests are mocked; no external API/email traffic is permitted. Containers, network and temporary addon files are removed afterwards. Exact image digests are pinned in `tests/run.py`; see [validation coverage](docs/VALIDATION.md).
 
-Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, production-account acceptance, publisher terms and repository registration, and Apps review. Authorized live testing against a MailChannels test environment passed on Odoo 19 and 20 (connection dry-run, delivery, a reply routed to the original record and a real DSN marking the notification bounced); see [publishing requirements](docs/PUBLISHING.md).
+Remaining release gates: browser settings/ACL/export validation, invoice/sales/chatter/marketing application scenarios, MIME edge cases, receipt reconciliation/retention UX, used-installation retirement and cross-major migration policy, Odoo.sh secret-provisioning validation, publisher terms and repository registration, and Apps review. Authorized live testing against a MailChannels test environment passed on Odoo 19 and 20 (connection dry-run, delivery, a reply routed to the original record and a real DSN marking the notification bounced), and the same checks passed against a MailChannels production account on 2026-11-09; see [publishing requirements](docs/PUBLISHING.md).
 
-A company-controlled Odoo publisher account exists, but no repository is registered and no publisher terms are accepted. This beta is not yet published or production-ready. Production-account acceptance must pass before the first release; the other gates will ship as documented known limitations (see [publishing requirements](docs/PUBLISHING.md)).
+A company-controlled Odoo publisher account exists, but no repository is registered and no publisher terms are accepted. This beta is not yet published or production-ready. Production-account acceptance passed on 2026-11-09; the other gates will ship as documented known limitations (see [publishing requirements](docs/PUBLISHING.md)).
 
 Native password reset is now exercised on Odoo 19 and 20 with auth_signup installed: actual template/queue/default-server selection, one mocked API POST, no SMTP, correct recipient and valid owner-bound reset link; reset token absent from receipts. See [validation coverage](docs/VALIDATION.md). Browser reset and actual delivery are still unverified.
 
